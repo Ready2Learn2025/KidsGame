@@ -22,7 +22,7 @@
     
     #canvas { 
       border-radius: 14px; 
-      border: 2px solid #534AB7; 
+      border: 3px solid #534AB7; 
       display: block; 
       box-shadow: 0 0 40px #1a1060; 
       cursor: crosshair;
@@ -99,19 +99,19 @@
   <h1>🚀 Space Trace!</h1>
   
   <div id="level-pick">
-    <button class="level-btn active" onclick="setLevel('easy')">🌱 Easy (3 letters)</button>
-    <button class="level-btn" onclick="setLevel('medium')">🔥 Medium (3 letters)</button>
-    <button class="level-btn" onclick="setLevel('hard')">💥 Hard (5 letters)</button>
+    <button class="level-btn active" onclick="setLevel('easy')">🌱 Easy</button>
+    <button class="level-btn" onclick="setLevel('medium')">🔥 Medium</button>
+    <button class="level-btn" onclick="setLevel('hard')">💥 Hard</button>
   </div>
 
-  <canvas id="canvas" width="600" height="500"></canvas>
+  <canvas id="canvas" width="700" height="600"></canvas>
   
   <div id="hud">
     ⭐ Score: <span id="score-val">0</span>
-    &nbsp;|&nbsp; 📝 Letters: <span id="letters-val">0</span>
-    &nbsp;|&nbsp; ✍️ Progress: <span id="progress-val">0%</span>
+    &nbsp;|&nbsp; 📝 Letters: <span id="letters-val">0/0</span>
+    &nbsp;|&nbsp; ✍️ Coverage: <span id="coverage-val">0%</span>
   </div>
-  <div id="hint">Trace the letter with your mouse or finger on the screen!</div>
+  <div id="hint">Color in the letter outline with your finger or mouse!</div>
 
   <script>
     // ── SHARED ARCADE BANK ──
@@ -132,42 +132,32 @@
       'F': '🔥', 'G': '⚡', 'H': '🌙', 'I': '✨', 'J': '🌟',
       'K': '🪐', 'L': '🌈', 'M': '🛰️', 'N': '🌌', 'O': '⭐',
       'P': '👾', 'Q': '💫', 'R': '🌠', 'S': '☄️', 'T': '🌕',
-      'U': '🌗', 'V': '🌑', 'W': '🌓', 'X': '❌', 'Y': '🎯',
-      'Z': '⚫'
+      'U': '🌗', 'V': '🌑', 'W': '🌓', 'X': '❌', 'Y': '🎯', 'Z': '⚫'
     };
 
-    const EASY_WORDS = [
-      ['A', 'T', 'E'],
-      ['D', 'O', 'G'],
-      ['C', 'A', 'T'],
-      ['B', 'U', 'S'],
-      ['S', 'U', 'N'],
-    ];
-
-    const MEDIUM_WORDS = [
-      ['S', 'P', 'A', 'C', 'E'],
-      ['R', 'O', 'C', 'K', 'E'],
-      ['A', 'L', 'I', 'E', 'N'],
-    ];
-
-    const HARD_WORDS = [
-      ['G', 'A', 'L', 'A', 'X', 'Y'],
-      ['P', 'L', 'A', 'N', 'E', 'T', 'S'],
-      ['S', 'T', 'A', 'R', 'S', 'H', 'I', 'P'],
-    ];
+    const EASY_WORDS = ['AT', 'DO', 'GO', 'IT', 'UP'];
+    const MEDIUM_WORDS = ['STAR', 'MOON', 'SPACE'];
+    const HARD_WORDS = ['PLANET', 'GALAXY', 'ROCKET'];
 
     let currentLevel = 'easy';
     let currentWordIndex = 0;
     let currentLetterIndex = 0;
     let score = 0;
-    let isTracing = false;
-    let lastX = null, lastY = null;
-    let traceProgress = 0;
-    let completedLetters = [];
     let wordList = EASY_WORDS;
+    let isDrawing = false;
+    let pixelsCovered = new Set();
 
-    // Drawing trace
-    let tracePoints = [];
+    // Create offscreen canvas for letter outline
+    const letterCanvas = document.createElement('canvas');
+    letterCanvas.width = W;
+    letterCanvas.height = H;
+    const letterCtx = letterCanvas.getContext('2d');
+
+    // Create offscreen canvas for user drawing
+    const drawingCanvas = document.createElement('canvas');
+    drawingCanvas.width = W;
+    drawingCanvas.height = H;
+    const drawingCtx = drawingCanvas.getContext('2d');
 
     function setLevel(level) {
       currentLevel = level;
@@ -181,7 +171,6 @@
       } else {
         wordList = HARD_WORDS;
       }
-      
       reset();
     }
 
@@ -189,15 +178,12 @@
       currentWordIndex = 0;
       currentLetterIndex = 0;
       score = 0;
-      completedLetters = [];
-      traceProgress = 0;
-      updateHUD();
+      loadNewLetter();
     }
 
     function getCurrentWord() {
       if (currentWordIndex >= wordList.length) {
         currentWordIndex = 0;
-        completedLetters = [];
       }
       return wordList[currentWordIndex];
     }
@@ -207,196 +193,230 @@
       return word[currentLetterIndex];
     }
 
+    function getTotalLetters() {
+      let total = 0;
+      for (let word of wordList) {
+        total += word.length;
+      }
+      return total;
+    }
+
+    function getCompletedLetters() {
+      let completed = 0;
+      for (let i = 0; i < currentWordIndex; i++) {
+        completed += wordList[i].length;
+      }
+      completed += currentLetterIndex;
+      return completed;
+    }
+
     function updateHUD() {
+      const completed = getCompletedLetters();
+      const total = getTotalLetters();
       document.getElementById('score-val').textContent = score;
-      document.getElementById('letters-val').textContent = completedLetters.length;
-      document.getElementById('progress-val').textContent = Math.floor(traceProgress) + '%';
+      document.getElementById('letters-val').textContent = completed + '/' + total;
+      document.getElementById('coverage-val').textContent = Math.floor(getCoverage()) + '%';
+    }
+
+    function loadNewLetter() {
+      pixelsCovered = new Set();
+      drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+      drawLetterOutline();
+      updateHUD();
+    }
+
+    function drawLetterOutline() {
+      // Clear letter canvas
+      letterCtx.clearRect(0, 0, letterCanvas.width, letterCanvas.height);
+      
+      const letter = getCurrentLetter();
+      const fontSize = 250;
+      
+      // Draw thick letter outline
+      letterCtx.font = `bold ${fontSize}px Arial`;
+      letterCtx.textAlign = 'center';
+      letterCtx.textBaseline = 'middle';
+      letterCtx.strokeStyle = '#00FFFF';
+      letterCtx.lineWidth = 25;
+      letterCtx.lineCap = 'round';
+      letterCtx.lineJoin = 'round';
+      letterCtx.strokeText(letter, W / 2, H / 2 - 40);
+    }
+
+    function getCoverage() {
+      const letterImageData = letterCtx.getImageData(0, 0, letterCanvas.width, letterCanvas.height);
+      const letterPixels = letterImageData.data;
+      
+      let outlinePixels = 0;
+      for (let i = 0; i < letterPixels.length; i += 4) {
+        if (letterPixels[i + 3] > 128) { // Alpha > 128 = part of outline
+          outlinePixels++;
+        }
+      }
+      
+      if (outlinePixels === 0) return 0;
+      return Math.min(100, (pixelsCovered.size / outlinePixels) * 100);
+    }
+
+    function handleDrawing(x, y) {
+      if (!isDrawing) return;
+
+      // Draw green pen on user canvas
+      drawingCtx.strokeStyle = '#00FF00';
+      drawingCtx.lineWidth = 30;
+      drawingCtx.lineCap = 'round';
+      drawingCtx.lineJoin = 'round';
+      
+      drawingCtx.beginPath();
+      drawingCtx.arc(x, y, 15, 0, Math.PI * 2);
+      drawingCtx.fill();
+
+      // Check if we're covering the outline
+      const letterImageData = letterCtx.getImageData(x - 20, y - 20, 40, 40);
+      const letterPixels = letterImageData.data;
+      
+      for (let i = 0; i < letterPixels.length; i += 4) {
+        if (letterPixels[i + 3] > 128) { // If outline pixel exists
+          pixelsCovered.add(`${Math.floor((x - 20 + (i/4) % 40))}:${Math.floor((y - 20 + Math.floor((i/4) / 40)))}`)
+        }
+      }
+
+      const coverage = getCoverage();
+      if (coverage >= 80) {
+        completeCurrentLetter();
+      }
+
+      updateHUD();
     }
 
     function completeCurrentLetter() {
-      completedLetters.push(getCurrentLetter());
       score += 5;
-      traceProgress = 0;
       arcadeEarn(5);
       
-      // Move to next letter
       currentLetterIndex++;
       const word = getCurrentWord();
       
       if (currentLetterIndex >= word.length) {
-        // Word complete, move to next
         currentWordIndex++;
         currentLetterIndex = 0;
       }
       
-      updateHUD();
-    }
-
-    function distance(x1, y1, x2, y2) {
-      const dx = x2 - x1;
-      const dy = y2 - y1;
-      return Math.sqrt(dx*dx + dy*dy);
-    }
-
-    function handleTraceMove(x, y) {
-      if (!isTracing) return;
-
-      tracePoints.push({x, y});
-
-      // Simple progress: more points traced = more progress
-      // Complete when enough distance covered
-      const minDistance = 150; // pixels to trace
-      
-      if (tracePoints.length > 1) {
-        const lastPoint = tracePoints[tracePoints.length - 2];
-        const dist = distance(lastPoint.x, lastPoint.y, x, y);
-        traceProgress += Math.min(dist / minDistance * 100, 100);
-        
-        if (traceProgress >= 100) {
-          completeCurrentLetter();
-          tracePoints = [];
-          isTracing = false;
-        }
+      if (currentWordIndex >= wordList.length) {
+        currentWordIndex = 0;
       }
+      
+      loadNewLetter();
     }
 
     function drawBackground() {
       ctx.fillStyle = '#050510';
       ctx.fillRect(0, 0, W, H);
       
-      // Stars
+      // Animated stars
       ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      for (let i = 0; i < 50; i++) {
-        const x = (i * 73 + currentLetterIndex * 17) % W;
+      for (let i = 0; i < 60; i++) {
+        const x = (i * 73 + Date.now() * 0.02) % W;
         const y = (i * 131) % H;
-        const size = Math.sin(i) * 0.5 + 0.5;
+        const size = Math.sin(i + Date.now() * 0.01) * 0.5 + 0.5;
         ctx.fillRect(x, y, size, size);
       }
     }
 
-    function drawLetter() {
+    function drawLetterInfo() {
       const letter = getCurrentLetter();
       const icon = LETTER_ICONS[letter];
 
-      // Draw letter info
+      // Draw letter name and icon
       ctx.fillStyle = '#FFD700';
-      ctx.font = 'bold 80px Arial';
+      ctx.font = 'bold 60px Arial';
       ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(letter, W / 2, 80);
+      ctx.textBaseline = 'top';
+      ctx.fillText(`Letter: ${letter}`, W / 2, 20);
 
       // Draw icon
-      ctx.font = '120px Arial';
-      ctx.fillText(icon, W / 2, H / 2 - 20);
-
-      // Draw progress
-      const progressHeight = 30;
-      const progressWidth = W - 80;
-      ctx.fillStyle = 'rgba(255,255,255,0.2)';
-      ctx.fillRect((W - progressWidth) / 2, H - 80, progressWidth, progressHeight);
-      
-      ctx.fillStyle = '#FFD700';
-      ctx.fillRect((W - progressWidth) / 2, H - 80, (traceProgress / 100) * progressWidth, progressHeight);
-      
-      ctx.strokeStyle = 'rgba(255,215,0,0.5)';
-      ctx.lineWidth = 2;
-      ctx.strokeRect((W - progressWidth) / 2, H - 80, progressWidth, progressHeight);
-      
-      // Progress text
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 14px Arial';
-      ctx.textAlign = 'center';
-      ctx.fillText('Trace the letter to complete it!', W / 2, H - 40);
-    }
-
-    function drawTrace() {
-      if (tracePoints.length < 2) return;
-
-      ctx.strokeStyle = '#00FF00';
-      ctx.lineWidth = 6;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      
-      ctx.beginPath();
-      ctx.moveTo(tracePoints[0].x, tracePoints[0].y);
-      
-      for (let i = 1; i < tracePoints.length; i++) {
-        ctx.lineTo(tracePoints[i].x, tracePoints[i].y);
-      }
-      
-      ctx.stroke();
-
-      // Draw trace point at end
-      const last = tracePoints[tracePoints.length - 1];
-      ctx.fillStyle = '#00FF00';
-      ctx.beginPath();
-      ctx.arc(last.x, last.y, 8, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.font = '80px Arial';
+      ctx.fillText(icon, W / 2, 90);
     }
 
     function draw() {
       drawBackground();
-      drawLetter();
-      drawTrace();
+      
+      // Draw the cyan outline letter
+      ctx.drawImage(letterCanvas, 0, 0);
+      
+      // Draw user's green drawing
+      ctx.drawImage(drawingCanvas, 0, 0);
+      
+      drawLetterInfo();
+      
+      // Draw coverage bar
+      const coverage = getCoverage();
+      const barY = H - 50;
+      const barWidth = W - 80;
+      const barHeight = 25;
+      
+      ctx.fillStyle = 'rgba(0, 255, 255, 0.2)';
+      ctx.fillRect(40, barY, barWidth, barHeight);
+      
+      ctx.fillStyle = '#00FF00';
+      ctx.fillRect(40, barY, (coverage / 100) * barWidth, barHeight);
+      
+      ctx.strokeStyle = '#00FFFF';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(40, barY, barWidth, barHeight);
+      
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 14px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${Math.floor(coverage)}% colored`, W / 2, barY + 35);
     }
-
-    // Input handling
-    canvas.addEventListener('mousedown', (e) => {
-      isTracing = true;
-      tracePoints = [];
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) * (W / rect.width);
-      const y = (e.clientY - rect.top) * (H / rect.height);
-      tracePoints.push({x, y});
-    });
-
-    canvas.addEventListener('mousemove', (e) => {
-      if (!isTracing) return;
-      const rect = canvas.getBoundingClientRect();
-      const x = (e.clientX - rect.left) * (W / rect.width);
-      const y = (e.clientY - rect.top) * (H / rect.height);
-      handleTraceMove(x, y);
-    });
-
-    canvas.addEventListener('mouseup', () => {
-      isTracing = false;
-    });
-
-    canvas.addEventListener('mouseleave', () => {
-      isTracing = false;
-    });
-
-    // Touch events
-    canvas.addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      isTracing = true;
-      tracePoints = [];
-      const rect = canvas.getBoundingClientRect();
-      const touch = e.touches[0];
-      const x = (touch.clientX - rect.left) * (W / rect.width);
-      const y = (touch.clientY - rect.top) * (H / rect.height);
-      tracePoints.push({x, y});
-    }, { passive: false });
-
-    canvas.addEventListener('touchmove', (e) => {
-      e.preventDefault();
-      if (!isTracing) return;
-      const rect = canvas.getBoundingClientRect();
-      const touch = e.touches[0];
-      const x = (touch.clientX - rect.left) * (W / rect.width);
-      const y = (touch.clientY - rect.top) * (H / rect.height);
-      handleTraceMove(x, y);
-    }, { passive: false });
-
-    canvas.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      isTracing = false;
-    }, { passive: false });
 
     function animate() {
       draw();
       requestAnimationFrame(animate);
     }
+
+    // Input handling - Mouse
+    canvas.addEventListener('mousedown', (e) => {
+      isDrawing = true;
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (!isDrawing) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (W / rect.width);
+      const y = (e.clientY - rect.top) * (H / rect.height);
+      handleDrawing(x, y);
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      isDrawing = false;
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      isDrawing = false;
+    });
+
+    // Input handling - Touch
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      isDrawing = true;
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (!isDrawing) return;
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      const x = (touch.clientX - rect.left) * (W / rect.width);
+      const y = (touch.clientY - rect.top) * (H / rect.height);
+      handleDrawing(x, y);
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      isDrawing = false;
+    }, { passive: false });
 
     reset();
     animate();
