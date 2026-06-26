@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#1a1060"/>
+      <stop offset="65%" stop-color="#080820"/>
+      <stop offset="100%" stop-color="#030310"/>
+    </radialGradient>
+    <linearGradient id="flame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff3a0"/>
+      <stop offset="50%" stop-color="#FFD700"/>
+      <stop offset="100%" stop-color="#FF6B35"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- stars -->
+  <g fill="#ffffff">
+    <circle cx="90" cy="110" r="4"/><circle cx="430" cy="90" r="5"/>
+    <circle cx="400" cy="200" r="3"/><circle cx="110" cy="300" r="3"/>
+    <circle cx="150" cy="420" r="4"/><circle cx="420" cy="400" r="4"/>
+    <circle cx="70" cy="220" r="3"/><circle cx="350" cy="300" r="3"/>
+  </g>
+  <!-- rocket -->
+  <g transform="translate(256 250)">
+    <!-- flame -->
+    <path d="M-26 96 Q0 175 26 96 Q0 120 -26 96 Z" fill="url(#flame)"/>
+    <!-- body -->
+    <path d="M0 -150 C58 -96 58 0 40 70 L-40 70 C-58 0 -58 -96 0 -150 Z" fill="#eef2fa"/>
+    <!-- nose -->
+    <path d="M0 -150 C28 -120 40 -90 42 -64 L-42 -64 C-40 -90 -28 -120 0 -150 Z" fill="#FF3B30"/>
+    <!-- window -->
+    <circle cx="0" cy="-30" r="26" fill="#1b2a55"/>
+    <circle cx="0" cy="-30" r="26" fill="none" stroke="#FFD700" stroke-width="7"/>
+    <circle cx="-8" cy="-38" r="7" fill="#9cd2ff"/>
+    <!-- fins -->
+    <path d="M-40 70 L-78 110 L-40 40 Z" fill="#FF3B30"/>
+    <path d="M40 70 L78 110 L40 40 Z" fill="#FF3B30"/>
+  </g>
+</svg>

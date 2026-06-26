@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<script src="ios-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+<title>Mason's Space Arcade</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Fredoka One', 'Comic Sans MS', cursive;
+  min-height: 100vh;
+  background: #070718;
+  color: white;
+  overflow-x: hidden;
+  user-select: none;
+}
+#space-bg {
+  position: fixed; inset: 0; z-index: 0; overflow: hidden;
+  background: radial-gradient(ellipse at 30% 30%, #1a1060 0%, #080820 70%, #030310 100%);
+}
+.star-bg { position: absolute; background: white; border-radius: 50%; animation: twinkle ease-in-out infinite alternate; }
+@keyframes twinkle { from { opacity: 0.2; transform: scale(0.8); } to { opacity: 1; transform: scale(1.3); } }
+.planet-bg { position: absolute; border-radius: 50%; animation: floatPlanet ease-in-out infinite alternate; box-shadow: inset -10px -8px 0 rgba(0,0,0,0.28); }
+@keyframes floatPlanet { from { transform: translateY(0) rotate(0deg); } to { transform: translateY(-22px) rotate(8deg); } }
+.rocket-bg { position: absolute; animation: rocketFly linear infinite; opacity: 0; }
+@keyframes rocketFly {
+  0% { transform: translate(-100px,0) rotate(-35deg); opacity: 0; }
+  8% { opacity: 0.7; } 92% { opacity: 0.7; }
+  100% { transform: translate(calc(110vw), calc(-55vh)) rotate(-35deg); opacity: 0; }
+}
+
+.wrap { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 26px 18px 60px; }
+
+header { text-align: center; margin-bottom: 8px; }
+.title-main {
+  font-size: 3rem; color: #FFD700;
+  text-shadow: 0 0 40px rgba(255,200,0,0.45), 4px 4px 0 rgba(0,0,0,0.4);
+  animation: floatUp 1.6s ease-in-out infinite alternate;
+}
+@keyframes floatUp { from { transform: translateY(0) rotate(-1deg); } to { transform: translateY(-12px) rotate(1deg); } }
+.title-sub { font-size: 1.1rem; color: rgba(255,255,255,0.75); margin-top: 6px; }
+
+/* WALLET */
+.wallet {
+  display: flex; align-items: center; justify-content: center; gap: 26px;
+  flex-wrap: wrap;
+  background: rgba(255,255,255,0.09);
+  border: 1px solid rgba(255,215,0,0.4);
+  border-radius: 24px;
+  padding: 16px 26px;
+  margin: 22px auto 8px;
+  max-width: 560px;
+  box-shadow: 0 0 30px rgba(255,200,0,0.12);
+}
+.wallet-block { text-align: center; }
+.wallet-num { font-size: 2.4rem; color: #FFD700; text-shadow: 0 0 16px rgba(255,200,0,0.5); line-height: 1; }
+.wallet-label { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 5px; letter-spacing: 1px; }
+.wallet-div { width: 2px; align-self: stretch; background: rgba(255,255,255,0.15); }
+
+.hint { text-align: center; font-size: 0.95rem; color: rgba(255,255,255,0.6); margin: 8px 0 22px; }
+
+/* GAME GRID */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
+.card {
+  position: relative;
+  background: rgba(255,255,255,0.08);
+  border: 2px solid rgba(255,255,255,0.16);
+  border-radius: 24px;
+  padding: 22px 20px 20px;
+  text-align: center;
+  text-decoration: none;
+  color: white;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  overflow: hidden;
+}
+.card.unlocked { cursor: pointer; border-color: rgba(255,215,0,0.45); }
+.card.unlocked:hover { transform: translateY(-6px) scale(1.02); box-shadow: 0 14px 34px rgba(0,0,0,0.45), 0 0 26px rgba(255,200,0,0.2); border-color: #FFD700; }
+.card.locked { filter: grayscale(0.4); }
+.card-icon { font-size: 3.6rem; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.4)); }
+.card-name { font-size: 1.45rem; color: #FFD700; }
+.card-blurb { font-size: 0.92rem; color: rgba(255,255,255,0.72); min-height: 38px; }
+.card-cta {
+  margin-top: 4px; font-size: 1.05rem; padding: 9px 26px; border-radius: 40px;
+  background: #FFD700; color: #7A3800; font-family: inherit;
+}
+.card.locked .card-cta { background: rgba(255,255,255,0.14); color: rgba(255,255,255,0.85); }
+.lock-emoji { position: absolute; top: 12px; right: 14px; font-size: 1.5rem; }
+.free-badge { position: absolute; top: 12px; left: 14px; font-size: 0.72rem; background: #30C840; color: white; padding: 3px 10px; border-radius: 12px; }
+
+.prog-track { width: 100%; height: 9px; background: rgba(0,0,0,0.35); border-radius: 6px; overflow: hidden; margin-top: 4px; }
+.prog-fill { height: 100%; background: linear-gradient(90deg, #FF9500, #FFD700); border-radius: 6px; transition: width 0.5s; }
+.prog-text { font-size: 0.82rem; color: rgba(255,255,255,0.7); margin-top: 2px; }
+
+.just-unlocked { animation: pop 0.6s cubic-bezier(0.175,0.885,0.32,1.275); }
+@keyframes pop { 0% { transform: scale(0.7); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+
+footer { text-align: center; margin-top: 34px; }
+.reset-btn {
+  font-family: inherit; font-size: 0.85rem; color: rgba(255,255,255,0.45);
+  background: transparent; border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 20px; padding: 7px 18px; cursor: pointer;
+}
+.reset-btn:hover { color: white; border-color: rgba(255,255,255,0.4); }
+
+/* TOAST */
+.toast {
+  position: fixed; top: 22px; left: 50%; transform: translateX(-50%);
+  background: white; color: #333; border-radius: 18px; padding: 14px 28px;
+  font-size: 1.1rem; box-shadow: 0 8px 30px rgba(0,0,0,0.4); z-index: 999;
+  animation: pop 0.4s ease;
+}
+
+@media (max-width: 520px) {
+  .title-main { font-size: 2.1rem; }
+  .wallet { gap: 16px; padding: 14px 18px; }
+  .wallet-num { font-size: 1.9rem; }
+  .card-icon { font-size: 3rem; }
+}
+</style>
+</head>
+<body>
+<div id="space-bg"></div>
+
+<div class="wrap">
+  <header>
+    <div class="title-main">🚀 Space Arcade 🪐</div>
+    <div class="title-sub">Play games, collect stars, unlock more fun!</div>
+  </header>
+
+  <div class="wallet">
+    <div class="wallet-block">
+      <div class="wallet-num" id="coins">0</div>
+      <div class="wallet-label">⭐ STARS TO SPEND</div>
+    </div>
+    <div class="wallet-div"></div>
+    <div class="wallet-block">
+      <div class="wallet-num" id="earned">0</div>
+      <div class="wallet-label">🏆 STARS EARNED</div>
+    </div>
+  </div>
+  <div class="hint">Earn stars in any game — they unlock new games and buy dress-up gear in Math Stars!</div>
+
+  <div class="grid" id="grid"></div>
+
+  <footer>
+    <button class="reset-btn" onclick="resetAll()">↺ Reset all progress</button>
+  </footer>
+</div>
+
+<script>
+// ── SHARED ARCADE BANK ──
+const ARCADE_KEY = 'masonArcade';
+function arcadeLoad(){ try { return JSON.parse(localStorage.getItem(ARCADE_KEY)) || {}; } catch(e){ return {}; } }
+function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
+
+// One-time migration from the old standalone Math Stars save
+(function migrate(){
+  const b = arcadeLoad();
+  if (b.migrated) return;
+  try {
+    const old = JSON.parse(localStorage.getItem('mathStars'));
+    if (old) {
+      b.coins  = (b.coins  || 0) + (old.score || 0);
+      b.earned = (b.earned || 0) + (old.score || 0);
+      if (old.char)  b.mathChar  = old.char;
+      if (old.owned) b.mathOwned = old.owned;
+    }
+  } catch(e){}
+  b.migrated = true;
+  arcadeSave(b);
+})();
+
+// ── GAME CATALOG ──
+const GAMES = [
+  { id:'math',  name:'Math Stars',   icon:'⭐', file:'math-adventure.html', cost:0,   blurb:'Solve space math to earn stars!' },
+  { id:'catch', name:'Star Catcher', icon:'🧺', file:'star-catcher.html',   cost:0,   blurb:'Catch the falling stars in your basket!' },
+  { id:'match', name:'Star Match',   icon:'🌌', file:'star-match.html',     cost:20,  blurb:'Flip the cards and find the pairs!' },
+  { id:'pop',   name:'Space Pop',    icon:'👾', file:'space-pop.html',      cost:40,  blurb:'Tap the aliens before they hide!' },
+  { id:'color', name:'Color Planets',icon:'🪐', file:'color-planets.html',  cost:60,  blurb:'Sort the planets into matching colors!' },
+  { id:'dash',  name:'Space Dash',   icon:'🚀', file:'space-dash.html',     cost:100, blurb:'Fly your ship, dodge planets, grab coins!' },
+  { id:'pong',  name:'Cosmic Pong',  icon:'🏓', file:'cosmic-pong.html',    cost:180, blurb:'Bounce the ball and build a rocket!' },
+];
+
+function render(){
+  const b = arcadeLoad();
+  const coins = b.coins || 0, earned = b.earned || 0;
+  const seen = b.unlockSeen || [];
+  document.getElementById('coins').textContent  = coins;
+  document.getElementById('earned').textContent = earned;
+
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  const newlyUnlocked = [];
+
+  GAMES.forEach(g => {
+    const unlocked = earned >= g.cost;
+    if (unlocked && g.cost > 0 && !seen.includes(g.id)) newlyUnlocked.push(g);
+
+    const free = g.cost === 0;
+    const el = document.createElement(unlocked ? 'a' : 'div');
+    el.className = 'card ' + (unlocked ? 'unlocked' : 'locked');
+    if (unlocked) el.href = g.file;
+
+    let bottom;
+    if (unlocked) {
+      bottom = `<div class="card-cta">▶ Play!</div>`;
+    } else {
+      const pct = Math.min(100, Math.round(earned / g.cost * 100));
+      const left = g.cost - earned;
+      bottom = `<div class="prog-track"><div class="prog-fill" style="width:${pct}%"></div></div>
+                <div class="prog-text">Earn ${left} more ⭐ to unlock</div>`;
+    }
+
+    el.innerHTML =
+      (free ? `<div class="free-badge">FREE</div>` : '') +
+      (unlocked ? '' : `<div class="lock-emoji">🔒</div>`) +
+      `<div class="card-icon">${g.icon}</div>
+       <div class="card-name">${g.name}</div>
+       <div class="card-blurb">${g.blurb}</div>
+       ${bottom}`;
+
+    if (newlyUnlocked.includes(g)) el.classList.add('just-unlocked');
+    grid.appendChild(el);
+  });
+
+  // Celebrate & remember newly unlocked games
+  if (newlyUnlocked.length) {
+    b.unlockSeen = GAMES.filter(g => earned >= g.cost).map(g => g.id);
+    arcadeSave(b);
+    toast(`🎉 New game unlocked: ${newlyUnlocked.map(g=>g.name).join(', ')}!`);
+  } else {
+    // keep seen list in sync without toasting
+    b.unlockSeen = GAMES.filter(g => earned >= g.cost).map(g => g.id);
+    arcadeSave(b);
+  }
+}
+
+function toast(msg){
+  const d = document.createElement('div'); d.className = 'toast'; d.textContent = msg;
+  document.body.appendChild(d); setTimeout(()=>d.remove(), 3000);
+}
+
+function resetAll(){
+  if (!confirm('Reset ALL stars, unlocks and dress-up items? This cannot be undone.')) return;
+  localStorage.removeItem(ARCADE_KEY);
+  localStorage.removeItem('mathStars');
+  const b = {}; b.migrated = true; arcadeSave(b);
+  render();
+  toast('Progress reset. Fresh start! 🌟');
+}
+
+// ── SPACE BACKGROUND ──
+(function(){
+  const bg = document.getElementById('space-bg');
+  for (let i=0;i<130;i++){
+    const s=document.createElement('div'); s.className='star-bg';
+    const sz=Math.random()*2.5+0.4;
+    s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation-duration:${1.5+Math.random()*3}s;animation-delay:${Math.random()*5}s;`;
+    bg.appendChild(s);
+  }
+  [
+    {c:'#FF6B35',w:70,h:70,l:'7%', t:'14%',d:'6s', ring:true },
+    {c:'#E85D04',w:44,h:44,l:'85%',t:'9%', d:'8s', ring:false},
+    {c:'#FFD700',w:55,h:55,l:'78%',t:'70%',d:'7s', ring:false},
+    {c:'#AF52DE',w:36,h:36,l:'12%',t:'78%',d:'9s', ring:false},
+    {c:'#32ADE6',w:78,h:40,l:'54%',t:'4%', d:'10s',ring:true},
+  ].forEach(p=>{
+    const div=document.createElement('div'); div.className='planet-bg';
+    div.style.cssText=`width:${p.w}px;height:${p.h}px;left:${p.l};top:${p.t};background:${p.c};animation-duration:${p.d};animation-delay:${Math.random()*4}s;opacity:0.5;`;
+    if(p.ring){ div.style.outline=`5px solid ${p.c}`; div.style.outlineOffset='7px'; }
+    bg.appendChild(div);
+  });
+  ['🚀','🛸','🚀'].forEach((r,i)=>{
+    const div=document.createElement('div'); div.className='rocket-bg';
+    div.style.cssText=`bottom:${20+Math.random()*55}%;left:-80px;font-size:${1.4+Math.random()*0.8}rem;animation-duration:${16+i*6+Math.random()*8}s;animation-delay:${i*5+Math.random()*6}s;`;
+    div.textContent=r; bg.appendChild(div);
+  });
+})();
+
+render();
+// Refresh when returning to the tab (stars earned in a game)
+document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+window.addEventListener('focus', render);
+</script>
+</body>
+</html>

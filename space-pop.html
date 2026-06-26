@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<script src="ios-app.js"></script>
+<title>Space Pop!</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: radial-gradient(ellipse at 50% 15%, #1a1060 0%, #080820 65%, #030310 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; font-family: 'Arial Rounded MT Bold', 'Arial Black', Arial, sans-serif;
+    overflow: hidden; user-select: none; color: #fff;
+  }
+  #home-link {
+    position: fixed; top: 16px; left: 16px;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,215,0,0.4);
+    color: #FFD700; text-decoration: none; font-size: 15px;
+    padding: 8px 18px; border-radius: 30px; z-index: 50;
+  }
+  #home-link:hover { background: rgba(255,215,0,0.18); }
+  h1 { color: #FFD700; font-size: 1.8rem; letter-spacing: 2px; text-shadow: 0 0 20px rgba(255,200,0,0.6); margin-bottom: 6px; }
+  #hud { display: flex; gap: 26px; margin-bottom: 12px; font-size: 1.3rem; color: #FFD700; }
+  #grid {
+    position: relative;
+    display: grid; grid-template-columns: repeat(3, 120px); grid-template-rows: repeat(3, 120px);
+    gap: 16px; padding: 22px; border-radius: 22px;
+    background: rgba(255,255,255,0.05); border: 3px solid #534AB7;
+    box-shadow: 0 0 40px rgba(120,100,255,0.3);
+  }
+  .crater {
+    position: relative; width: 120px; height: 120px; border-radius: 50%;
+    background: radial-gradient(circle at 50% 38%, #2a2550 0%, #141233 70%, #0c0a22 100%);
+    box-shadow: inset 0 8px 16px rgba(0,0,0,0.6), inset 0 -4px 8px rgba(120,100,255,0.15);
+    overflow: hidden; cursor: pointer;
+  }
+  .alien {
+    position: absolute; left: 50%; bottom: -100%; transform: translateX(-50%);
+    width: 86px; height: 86px; transition: bottom 0.18s cubic-bezier(0.2,0.8,0.3,1);
+    display: flex; align-items: center; justify-content: center; font-size: 64px;
+    pointer-events: none;
+  }
+  .alien.up { bottom: 12px; }
+  .alien.bonk { animation: bonk 0.25s ease; }
+  @keyframes bonk { 0%{ transform: translateX(-50%) scale(1); } 50%{ transform: translateX(-50%) scale(0.6) rotate(-12deg); } 100%{ transform: translateX(-50%) scale(0); } }
+
+  #overlay {
+    position: absolute; inset: 0; background: rgba(6,6,20,0.9); border-radius: 19px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 10; text-align: center;
+  }
+  #overlay h2 { color: #FFD700; font-size: 1.9rem; text-shadow: 0 0 16px rgba(255,200,0,0.6); }
+  #overlay p { color: #cdd; font-size: 1.05rem; }
+  #play-btn {
+    background: linear-gradient(180deg, #7F77DD 0%, #4a42b0 100%); color: #FFD700;
+    border: 4px solid #FFD700; padding: 12px 38px; font-size: 1.4rem; font-family: inherit;
+    border-radius: 40px; cursor: pointer; box-shadow: 0 6px 0 #2c2870;
+  }
+  #play-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #2c2870; }
+  .float-pt {
+    position: absolute; color: #FFD700; font-size: 1.4rem; pointer-events: none;
+    animation: floatUp 0.7s ease-out forwards; z-index: 20;
+  }
+  @keyframes floatUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-40px); } }
+  #hint { margin-top: 12px; font-size: 13px; color: #888; }
+  @media (max-width: 430px) {
+    #grid { grid-template-columns: repeat(3, 96px); grid-template-rows: repeat(3, 96px); gap: 12px; padding: 14px; }
+    .crater { width: 96px; height: 96px; }
+    .alien { width: 70px; height: 70px; font-size: 50px; }
+    .alien.up { bottom: 10px; }
+  }
+</style>
+</head>
+<body>
+<a id="home-link" href="index.html">🏠 Home</a>
+<h1>👾 SPACE POP 🛸</h1>
+<div id="hud">⭐ <span id="score">0</span> &nbsp;|&nbsp; ⏱️ <span id="time">30</span>s</div>
+
+<div id="grid">
+  <div id="overlay">
+    <h2>👾 Space Pop!</h2>
+    <p>Tap the aliens before they hide!<br>Each alien = 1 ⭐ star. You have 30 seconds!</p>
+    <button id="play-btn">▶ START!</button>
+  </div>
+</div>
+<div id="hint">Tap or click the aliens as fast as you can! 🚀</div>
+
+<script>
+// ── SHARED ARCADE BANK ──
+const ARCADE_KEY='masonArcade';
+function arcadeLoad(){ try{ return JSON.parse(localStorage.getItem(ARCADE_KEY))||{}; }catch(e){ return {}; } }
+function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
+function arcadeEarn(n){ const b=arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(b.earned||0)+n; arcadeSave(b); }
+
+const ALIENS = ['👾','👽','🛸','🤖','😺'];
+const grid = document.getElementById('grid');
+const overlay = document.getElementById('overlay');
+const scoreEl = document.getElementById('score');
+const timeEl = document.getElementById('time');
+
+let score = 0, timeLeft = 30, running = false;
+let popTimer = null, clockTimer = null;
+const craters = [];
+
+// Build 9 craters
+for (let i=0;i<9;i++){
+  const c = document.createElement('div'); c.className='crater';
+  const a = document.createElement('div'); a.className='alien';
+  a.textContent = ALIENS[i % ALIENS.length];
+  c.appendChild(a);
+  c.dataset.active = '0';
+  c.addEventListener('click', ()=>hit(c));
+  c.addEventListener('touchstart', e=>{ e.preventDefault(); hit(c); }, {passive:false});
+  grid.appendChild(c); craters.push(c);
+}
+
+function hit(c){
+  if (!running || c.dataset.active !== '1') return;
+  c.dataset.active = '0';
+  score++; arcadeEarn(1); scoreEl.textContent = score;
+  const a = c.querySelector('.alien');
+  a.classList.remove('up'); a.classList.add('bonk');
+  setTimeout(()=>{ a.classList.remove('bonk'); a.style.bottom=''; }, 260);
+  floatPoint(c);
+  beep(660, 0.08);
+}
+
+function floatPoint(c){
+  const f = document.createElement('div'); f.className='float-pt'; f.textContent='+1⭐';
+  const r = c.getBoundingClientRect(); const gr = grid.getBoundingClientRect();
+  f.style.left = (r.left - gr.left + 36) + 'px';
+  f.style.top  = (r.top  - gr.top  + 30) + 'px';
+  grid.appendChild(f); setTimeout(()=>f.remove(), 700);
+}
+
+function popRandom(){
+  const idle = craters.filter(c=>c.dataset.active==='0' && !c.querySelector('.alien').classList.contains('up'));
+  if (!idle.length) return;
+  const c = idle[Math.floor(Math.random()*idle.length)];
+  const a = c.querySelector('.alien');
+  c.dataset.active = '1'; a.classList.add('up');
+  const stay = 700 + Math.random()*700;
+  setTimeout(()=>{
+    if (c.dataset.active==='1'){ c.dataset.active='0'; a.classList.remove('up'); }
+  }, stay);
+}
+
+function start(){
+  score=0; timeLeft=30; running=true;
+  scoreEl.textContent=0; timeEl.textContent=30;
+  overlay.style.display='none';
+  // ramp difficulty: pops get a touch faster over time
+  let interval = 720;
+  popTimer = setInterval(popRandom, interval);
+  // periodically pop two at once later in the round
+  clockTimer = setInterval(()=>{
+    timeLeft--; timeEl.textContent = timeLeft;
+    if (timeLeft <= 12) popRandom();   // extra aliens near the end
+    if (timeLeft <= 0) end();
+  }, 1000);
+}
+
+function end(){
+  running=false; clearInterval(popTimer); clearInterval(clockTimer);
+  craters.forEach(c=>{ c.dataset.active='0'; c.querySelector('.alien').classList.remove('up'); });
+  overlay.innerHTML = `<h2>🎉 Time's up!</h2>
+    <p>You popped <strong style="color:#FFD700">${score}</strong> aliens<br>and earned <strong style="color:#FFD700">${score} ⭐ stars!</strong></p>
+    <button id="play-btn">▶ PLAY AGAIN</button>`;
+  overlay.style.display='flex';
+  document.getElementById('play-btn').addEventListener('click', start);
+}
+
+document.getElementById('play-btn').addEventListener('click', start);
+
+// tiny sound
+let actx;
+function beep(freq, dur){
+  try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.connect(g); g.connect(actx.destination); o.type='sine'; o.frequency.value=freq;
+    g.gain.setValueAtTime(0.18, actx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime+dur);
+    o.start(); o.stop(actx.currentTime+dur);
+  }catch(e){}
+}
+</script>
+</body>
+</html>

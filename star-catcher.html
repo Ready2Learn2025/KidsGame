@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<script src="ios-app.js"></script>
+<title>Star Catcher!</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: radial-gradient(ellipse at 50% 15%, #1a1060 0%, #080820 65%, #030310 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; font-family: 'Arial Rounded MT Bold', 'Arial Black', Arial, sans-serif;
+    overflow: hidden; user-select: none; color: #fff;
+  }
+  #home-link {
+    position: fixed; top: 16px; left: 16px;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,215,0,0.4);
+    color: #FFD700; text-decoration: none; font-size: 15px;
+    padding: 8px 18px; border-radius: 30px; z-index: 50;
+  }
+  #home-link:hover { background: rgba(255,215,0,0.18); }
+  h1 { color: #FFD700; font-size: 1.8rem; letter-spacing: 2px; text-shadow: 0 0 20px rgba(255,200,0,0.6); margin-bottom: 8px; }
+  #hud { display: flex; gap: 22px; margin-bottom: 8px; font-size: 1.2rem; color: #FFD700; }
+  #canvas { border-radius: 16px; border: 4px solid #534AB7; box-shadow: 0 0 40px rgba(120,100,255,0.35); cursor: none; touch-action: none; max-width: 96vw; height: auto; }
+  #hint { margin-top: 8px; font-size: 13px; color: #888; }
+</style>
+</head>
+<body>
+<a id="home-link" href="index.html">🏠 Home</a>
+<h1>🧺 STAR CATCHER ✨</h1>
+<div id="hud">⭐ Caught: <span id="caught">0</span> &nbsp;|&nbsp; ❤️ <span id="lives">❤️❤️❤️</span></div>
+<canvas id="canvas" width="460" height="560"></canvas>
+<div id="hint">Move your mouse or finger to catch the stars — dodge the asteroids! ☄️</div>
+
+<script>
+// ── SHARED ARCADE BANK ──
+const ARCADE_KEY='masonArcade';
+function arcadeLoad(){ try{ return JSON.parse(localStorage.getItem(ARCADE_KEY))||{}; }catch(e){ return {}; } }
+function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
+function arcadeEarn(n){ const b=arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(b.earned||0)+n; arcadeSave(b); }
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+const caughtEl = document.getElementById('caught');
+const livesEl = document.getElementById('lives');
+
+let basketX = W/2, caught = 0, lives = 3, items = [], stars = [], pops = [];
+let spawnTimer = 0, started = false, gameOver = false, flash = 0;
+
+for (let i=0;i<60;i++) stars.push({ x:Math.random()*W, y:Math.random()*H, r:Math.random()*1.5+0.3, t:Math.random()*6 });
+
+function reset(){ caught=0; lives=3; items=[]; pops=[]; spawnTimer=0; gameOver=false; flash=0; updateHUD(); }
+function updateHUD(){ caughtEl.textContent=caught; livesEl.textContent = lives>0 ? '❤️'.repeat(lives) : '💀'; }
+
+function spawn(){
+  const isStar = Math.random() < 0.8;   // mostly stars, friendly
+  items.push({
+    x: 30 + Math.random()*(W-60), y: -24,
+    vy: 1.4 + Math.random()*1.1, type: isStar ? 'star' : 'rock', r: 16
+  });
+}
+
+function drawBasket(){
+  const y = H - 46, w = 84, h = 40;
+  ctx.save(); ctx.translate(basketX, y);
+  // rim
+  ctx.fillStyle = '#FFD700';
+  ctx.beginPath(); ctx.roundRect(-w/2-4, -8, w+8, 12, 6); ctx.fill();
+  // body
+  ctx.fillStyle = '#C77B17';
+  ctx.beginPath();
+  ctx.moveTo(-w/2, 0); ctx.lineTo(w/2, 0); ctx.lineTo(w/2-10, h); ctx.lineTo(-w/2+10, h); ctx.closePath(); ctx.fill();
+  // weave lines
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth=2;
+  for (let i=-2;i<=2;i++){ ctx.beginPath(); ctx.moveTo(i*16, 2); ctx.lineTo(i*13, h-2); ctx.stroke(); }
+  ctx.restore();
+}
+
+function drawStar(x,y,r,color){
+  ctx.save(); ctx.translate(x,y);
+  ctx.shadowColor=color; ctx.shadowBlur=12;
+  ctx.fillStyle=color; ctx.beginPath();
+  for (let i=0;i<10;i++){ const rad=i%2===0?r:r*0.45; const a=(i/5)*Math.PI-Math.PI/2;
+    i===0?ctx.moveTo(rad*Math.cos(a),rad*Math.sin(a)):ctx.lineTo(rad*Math.cos(a),rad*Math.sin(a)); }
+  ctx.closePath(); ctx.fill(); ctx.restore();
+}
+function drawRock(x,y,r){
+  ctx.save(); ctx.translate(x,y);
+  ctx.fillStyle='#8a7a6a'; ctx.beginPath(); ctx.arc(0,0,r,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.arc(-5,-3,3,0,Math.PI*2); ctx.arc(6,2,4,0,Math.PI*2); ctx.arc(0,7,2.5,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+function loop(){
+  ctx.clearRect(0,0,W,H);
+  // bg stars
+  stars.forEach(s=>{ s.t+=0.04; ctx.globalAlpha=0.3+0.4*Math.abs(Math.sin(s.t));
+    ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill(); });
+  ctx.globalAlpha=1;
+
+  if (!started){
+    drawBasket();
+    overlay('🧺 Star Catcher', 'Move to catch falling stars!', 'Click or tap to start');
+    requestAnimationFrame(loop); return;
+  }
+  if (gameOver){
+    drawBasket();
+    overlay('✨ Nice catching!', `You caught ${caught} stars!`, 'Click or tap to play again');
+    requestAnimationFrame(loop); return;
+  }
+
+  // spawn
+  spawnTimer--; if (spawnTimer<=0){ spawn(); spawnTimer = 38 + Math.random()*34; }
+
+  // basket catch zone
+  const by = H-46, bw = 84;
+  items.forEach(it=>{
+    it.y += it.vy;
+    if (it.y > by-6 && it.y < by+30 && Math.abs(it.x-basketX) < bw/2+6){
+      it.dead = true;
+      if (it.type==='star'){ caught++; arcadeEarn(1); pops.push({x:it.x,y:by-6,life:1}); }
+      else { lives--; flash=12; if (lives<=0) gameOver=true; }
+      updateHUD();
+    }
+    if (it.y > H+30) it.dead = true;
+  });
+  items = items.filter(it=>!it.dead);
+
+  // draw items
+  items.forEach(it=> it.type==='star' ? drawStar(it.x,it.y,it.r,'#FFD700') : drawRock(it.x,it.y,it.r));
+
+  // pop effects
+  pops.forEach(p=>{ p.life-=0.06; p.y-=1.2; });
+  pops = pops.filter(p=>p.life>0);
+  pops.forEach(p=>{ ctx.save(); ctx.globalAlpha=p.life; drawStar(p.x,p.y,10+(1-p.life)*10,'#fff7aa'); ctx.restore(); });
+
+  drawBasket();
+
+  if (flash>0){ flash--; ctx.fillStyle='rgba(255,60,60,0.18)'; ctx.fillRect(0,0,W,H); }
+  requestAnimationFrame(loop);
+}
+
+function overlay(l1,l2,l3){
+  ctx.save(); ctx.fillStyle='rgba(6,6,20,0.78)'; ctx.fillRect(0,0,W,H);
+  ctx.textAlign='center'; ctx.fillStyle='#FFD700'; ctx.font='bold 32px Arial'; ctx.fillText(l1, W/2, H/2-30);
+  ctx.fillStyle='rgba(255,255,255,0.8)'; ctx.font='18px Arial'; ctx.fillText(l2, W/2, H/2+6);
+  ctx.fillStyle='rgba(255,215,0,0.75)'; ctx.font='15px Arial'; ctx.fillText(l3, W/2, H/2+36);
+  ctx.restore();
+}
+
+function setX(clientX){
+  const rect = canvas.getBoundingClientRect();
+  basketX = Math.max(46, Math.min(W-46, (clientX-rect.left)*(W/rect.width)));
+}
+canvas.addEventListener('mousemove', e=> setX(e.clientX));
+canvas.addEventListener('touchmove', e=>{ e.preventDefault(); setX(e.touches[0].clientX); }, {passive:false});
+function go(){ if (!started){ started=true; reset(); } else if (gameOver){ reset(); } }
+canvas.addEventListener('click', go);
+canvas.addEventListener('touchstart', e=>{ e.preventDefault(); setX(e.touches[0].clientX); go(); }, {passive:false});
+document.addEventListener('keydown', e=>{
+  if (e.key==='ArrowLeft') basketX=Math.max(46, basketX-34);
+  if (e.key==='ArrowRight') basketX=Math.min(W-46, basketX+34);
+  if (e.key===' '||e.key==='Enter') go();
+});
+
+reset(); loop();
+</script>
+</body>
+</html>
