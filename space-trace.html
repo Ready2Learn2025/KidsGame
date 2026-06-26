@@ -165,7 +165,8 @@
     function setLevel(level) {
       currentLevel = level;
       document.querySelectorAll('.level-btn').forEach(btn => btn.classList.remove('active'));
-      event.target.classList.add('active');
+      const activeBtn = document.querySelector(`.level-btn[onclick*="${level}"]`);
+      if (activeBtn) activeBtn.classList.add('active');
       
       if (level === 'easy') {
         wordList = EASY_WORDS;
@@ -286,15 +287,21 @@
       drawingCtx.lineTo(x, y);
       drawingCtx.stroke();
 
-      // Record all pixels in the drawn area
-      const imageData = drawingCtx.getImageData(Math.max(0, x - 20), Math.max(0, y - 20), 40, 40);
+      // Record integer canvas pixels around the full stroke segment.
+      const pad = drawingCtx.lineWidth / 2 + 3;
+      const sx = Math.max(0, Math.floor(Math.min(lastX, x) - pad));
+      const sy = Math.max(0, Math.floor(Math.min(lastY, y) - pad));
+      const ex = Math.min(W, Math.ceil(Math.max(lastX, x) + pad));
+      const ey = Math.min(H, Math.ceil(Math.max(lastY, y) + pad));
+      const imageData = drawingCtx.getImageData(sx, sy, Math.max(1, ex - sx), Math.max(1, ey - sy));
       const pixels = imageData.data;
       
       for (let i = 0; i < pixels.length; i += 4) {
         if (pixels[i + 3] > 128) { // If green pixel exists
-          const baseIndex = (Math.max(0, x - 20)) + (Math.max(0, y - 20)) * W;
-          const localIndex = (i / 4) % (40 * 40);
-          coveredPixels.add(baseIndex + (Math.floor(localIndex / 40)) * W + (localIndex % 40));
+          const pixel = i / 4;
+          const px = pixel % imageData.width;
+          const py = Math.floor(pixel / imageData.width);
+          coveredPixels.add((sy + py) * W + sx + px);
         }
       }
 

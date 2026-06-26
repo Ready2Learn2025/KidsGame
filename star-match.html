@@ -153,7 +153,8 @@ let first=null, busy=false;
 function syncStars(){ caughtEl.textContent = sessionStars; }
 
 function startGame(level){
-  currentLevel=level; matched=0; first=null; busy=false;
+  currentLevel=level; matched=0; sessionStars=0; first=null; busy=false;
+  syncStars();
   document.getElementById('win').classList.remove('show');
   pickEl.style.display='none'; boardEl.style.display='grid';
   totalPairs = LEVELS[level];

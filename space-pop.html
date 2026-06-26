@@ -145,13 +145,24 @@ function popRandom(){
   }, stay);
 }
 
+function popDelay(){
+  const elapsed = 30 - timeLeft;
+  return Math.max(360, 760 - elapsed * 14);
+}
+
+function schedulePop(){
+  if (!running) return;
+  popRandom();
+  popTimer = setTimeout(schedulePop, popDelay());
+}
+
 function start(){
+  clearTimeout(popTimer); clearInterval(clockTimer);
   score=0; timeLeft=30; running=true;
   scoreEl.textContent=0; timeEl.textContent=30;
   overlay.style.display='none';
   // ramp difficulty: pops get a touch faster over time
-  let interval = 720;
-  popTimer = setInterval(popRandom, interval);
+  popTimer = setTimeout(schedulePop, 500);
   // periodically pop two at once later in the round
   clockTimer = setInterval(()=>{
     timeLeft--; timeEl.textContent = timeLeft;
@@ -161,7 +172,7 @@ function start(){
 }
 
 function end(){
-  running=false; clearInterval(popTimer); clearInterval(clockTimer);
+  running=false; clearTimeout(popTimer); clearInterval(clockTimer);
   craters.forEach(c=>{ c.dataset.active='0'; c.querySelector('.alien').classList.remove('up'); });
   overlay.innerHTML = `<h2>🎉 Time's up!</h2>
     <p>You popped <strong style="color:#FFD700">${score}</strong> aliens<br>and earned <strong style="color:#FFD700">${score} ⭐ stars!</strong></p>

@@ -51,6 +51,8 @@
     function arcadeLoad(){ try { return JSON.parse(localStorage.getItem(ARCADE_KEY)) || {}; } catch(e){ return {}; } }
     function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
     function arcadeEarn(n){ const b = arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(b.earned||0)+n; arcadeSave(b); }
+    function loadDashBest(){ const b = arcadeLoad(); return b.dashBest || 0; }
+    function saveDashBest(n){ const b = arcadeLoad(); b.dashBest = Math.max(b.dashBest || 0, n); arcadeSave(b); }
 
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
@@ -58,6 +60,7 @@
     const bestEl   = document.getElementById('best-val');
     const livesEl  = document.getElementById('lives-val');
     const coinsEl  = document.getElementById('coins-val');
+    document.getElementById('hint').textContent = 'Drag with your finger to steer | tap to start | arrow keys also work';
     const W = canvas.width, H = canvas.height;
 
     const LANE_COUNT = 5;
@@ -77,7 +80,7 @@
     let ship, planets, coins, stars, score, totalCoins, lives, best, bestCoins;
     let speed, planetTimer, coinTimer, gameOver, started, flashTimer, shieldTimer;
     let mouseX = null;
-    best = 0; bestCoins = 0;
+    best = loadDashBest(); bestCoins = 0;
 
     function initStars() {
       stars = [];
@@ -392,7 +395,8 @@
         });
         if (lives <= 0) {
           gameOver = true;
-          if (score > best) best = score;
+          const finalScore = Math.floor(score);
+          if (finalScore > best) { best = finalScore; saveDashBest(best); }
           if (totalCoins > bestCoins) bestCoins = totalCoins;
         }
         updateHUD();
@@ -466,9 +470,11 @@
 
     // Touch
     let touchStartX = null;
+    let touchMoved = false;
     canvas.addEventListener('touchstart', e => {
       e.preventDefault();
       touchStartX = e.touches[0].clientX;
+      touchMoved = false;
     }, { passive: false });
     canvas.addEventListener('touchmove', e => {
       e.preventDefault();
@@ -476,17 +482,21 @@
       const rect = canvas.getBoundingClientRect();
       const scaleX = W / rect.width;
       mouseX = (e.touches[0].clientX - rect.left) * scaleX;
+      if (touchStartX !== null && Math.abs(e.touches[0].clientX - touchStartX) > 8) {
+        touchMoved = true;
+      }
     }, { passive: false });
     canvas.addEventListener('touchend', e => {
       e.preventDefault();
       mouseX = null;
       if (!started)      { started = true; return; }
       if (gameOver)      { reset(); started = true; return; }
-      if (touchStartX !== null) {
+      if (touchStartX !== null && !touchMoved) {
         const dx = e.changedTouches[0].clientX - touchStartX;
         if (Math.abs(dx) > 20) moveLane(dx > 0 ? 1 : -1);
-        touchStartX = null;
       }
+      touchStartX = null;
+      touchMoved = false;
     }, { passive: false });
 
     reset();

@@ -68,6 +68,18 @@
   }
   #start-btn:hover  { transform: translateY(-2px); }
   #start-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #2c2870; }
+  @media (max-width: 560px) {
+    body { justify-content: flex-start; padding-top: 56px; }
+    #title { font-size: 1.35rem; letter-spacing: 2px; margin-bottom: 4px; }
+    #score-row { gap: 8px; padding: 4px 0; }
+    .score-box { font-size: 1.1rem; min-width: 64px; padding: 4px 12px; }
+    #game-area { width: 96vw; aspect-ratio: 820 / 620; border-width: 4px; }
+    #message { font-size: 1.35rem; white-space: normal; width: 90%; }
+    #start-screen { gap: 12px; padding: 14px; }
+    #start-screen h2 { font-size: 1.45rem; }
+    #start-screen p { font-size: 0.88rem; line-height: 1.55; }
+    #start-btn { font-size: 1.1rem; padding: 11px 28px; }
+  }
 </style>
 </head>
 <body>
@@ -193,6 +205,58 @@ function drawAlien(cx, cy, scale){
 
 // ── ROCKET BUILD PANEL ──
 let stage = 0;
+function updateScoreLabels(){
+  document.getElementById('score-p').textContent = playerScore;
+  document.getElementById('score-cpu').textContent = cpuScore;
+}
+
+function setStartScreen(title, copy, buttonText){
+  const screen = document.getElementById('start-screen');
+  const titleEl = screen.querySelector('h2');
+  const copyEl = screen.querySelector('p');
+  const btn = document.getElementById('start-btn');
+  titleEl.innerHTML = title;
+  copyEl.innerHTML = copy;
+  btn.textContent = buttonText;
+  screen.style.display = 'flex';
+}
+
+function showReadyScreen(){
+  setStartScreen(
+    'ðŸš€ BUILD YOUR ROCKET!',
+    'Drag your <strong style="color:#FFD700">finger up &amp; down</strong> to hit the ball back! ðŸŽ¯<br>' +
+      'Mouse works too if you are on a computer.<br>' +
+      'Score a point â†’ <strong style="color:#72D7F5">add a rocket part!</strong><br>' +
+      'Score <strong style="color:#FFD700">10 points</strong> to blast off! ðŸ†<br>' +
+      'Every point earns you a â­ star for the arcade!',
+    "â–¶ LET'S PLAY!"
+  );
+}
+
+function startGame(){
+  playerScore = 0; cpuScore = 0; hits = 0; level = 1; stage = 0;
+  particles = [];
+  player.y = H/2 - PLAYER_H/2;
+  cpu.y = H/2 - CPU_H/2;
+  mouseY = H / 2;
+  updateScoreLabels();
+  document.getElementById('message').style.opacity = 0;
+  document.getElementById('start-screen').style.display='none';
+  gameRunning = true;
+  resetBall(1);
+}
+
+function finishGame(){
+  gameRunning = false;
+  spawnConfetti(PLAY_W*0.7, H*0.4);
+  setStartScreen(
+    'ðŸ† ROCKET COMPLETE!',
+    'You built the whole rocket and earned a <strong style="color:#FFD700">10 â­ bonus</strong>!<br>' +
+      'Tap play again to build another rocket.',
+    'â–¶ PLAY AGAIN'
+  );
+}
+
 function renderRocketPanel(){
   const ox = HOX, oy = HOY;
   ctx.save(); ctx.shadowColor='rgba(0,0,0,0.5)'; ctx.shadowBlur=16;
@@ -328,17 +392,19 @@ function update(){
   }
 
   if (ball.x < 0){
-    cpuScore++; document.getElementById('score-cpu').textContent=cpuScore;
+    cpuScore++; updateScoreLabels();
     showMessage('😅 Almost! Try again!'); playMiss(); resetBall(1);
   }
   if (ball.x > PLAY_W){
-    playerScore++; document.getElementById('score-p').textContent=playerScore;
+    playerScore++; updateScoreLabels();
     spawnConfetti(PLAY_W*0.7, H*0.4);
     stage = Math.min(playerScore, 10);
     arcadeEarn(1);                              // 1 star per point into the arcade bank
     showMessage('🚀 GREAT HIT! +1 PART!'); playScore();
     if (playerScore === 10){
       arcadeEarn(10);                           // liftoff bonus
+      setTimeout(finishGame, 600);
+      return;
       setTimeout(()=>showMessage('🏆 ROCKET COMPLETE! BLAST OFF! 🚀', 4000), 600);
     }
     resetBall(-1);
@@ -406,21 +472,27 @@ function playScore(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(
 
 // ── Input ──
 const area = document.getElementById('game-area');
+function setPaddleFromClientY(clientY){
+  const rect = area.getBoundingClientRect();
+  mouseY = (clientY - rect.top) * (H / rect.height);
+}
 area.addEventListener('mousemove', e => {
-  const rect = area.getBoundingClientRect();
-  mouseY = (e.clientY - rect.top) * (H / rect.height);
+  setPaddleFromClientY(e.clientY);
 });
-area.addEventListener('touchmove', e => {
+area.addEventListener('touchstart', e => {
+  if (e.target.closest('#start-screen')) return;
   e.preventDefault();
-  const rect = area.getBoundingClientRect();
-  mouseY = (e.touches[0].clientY - rect.top) * (H / rect.height);
+  setPaddleFromClientY(e.touches[0].clientY);
+}, { passive:false });
+area.addEventListener('touchmove', e => {
+  if (e.target.closest('#start-screen')) return;
+  e.preventDefault();
+  setPaddleFromClientY(e.touches[0].clientY);
 }, { passive:false });
 
-document.getElementById('start-btn').addEventListener('click', () => {
-  document.getElementById('start-screen').style.display='none';
-  gameRunning = true; resetBall(1);
-});
+document.getElementById('start-btn').addEventListener('click', startGame);
 
+showReadyScreen();
 gameLoop();
 </script>
 </body>
