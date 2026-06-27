@@ -81,6 +81,7 @@
       flex-direction: column;
       align-items: center;
       gap: 15px;
+      min-width: 0;
     }
     
     .canvas-wrapper {
@@ -90,6 +91,7 @@
       padding: 15px;
       box-shadow: 0 0 30px rgba(255,200,0,0.12);
       position: relative;
+      width: min(100%, 436px);
     }
     
     #canvas {
@@ -98,6 +100,8 @@
       border-radius: 10px;
       cursor: crosshair;
       touch-action: none;
+      width: 100%;
+      height: auto;
     }
     
     .canvas-buttons {
@@ -146,6 +150,7 @@
       border-radius: 20px;
       padding: 14px;
       box-shadow: 0 0 20px rgba(255,200,0,0.1);
+      min-width: 0;
     }
     .tool-shell {
       display: grid;
