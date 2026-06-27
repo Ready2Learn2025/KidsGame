@@ -21,6 +21,7 @@ Current goal: make the dressed-up avatar a universal guide across the arcade.
   - `space-trace.html`
   - `star-catcher.html`
   - `space-jump.html`
+  - `land-jump.html`
   - `star-match.html`
   - `space-pop.html`
   - `color-planets.html`
@@ -60,6 +61,10 @@ Current goal: make the dressed-up avatar a universal guide across the arcade.
 - Space Jump:
   - Add a Flappy Bird-style jumping game with Easy, Hard, and Harder modes.
   - Add coins that multiply over time, x2 coin powerups, and 3 moon pieces for a bonus.
+  - Make Easy much more forgiving with bigger asteroid gaps, wider gate spacing, softer hitboxes, and no shooting-star hazards.
+- Land Jump:
+  - Add a ground-based jumping game with Easy, Hard, and Harder modes.
+  - Add incoming meteors, coin collection, coin multipliers over time, and x2 coin powerups.
 - Cosmic Pong:
   - Fix the iOS web issue where the player cannot get past the "move your mouse up and down" start instruction.
 - Color Ship:
@@ -69,3 +74,20 @@ Current goal: make the dressed-up avatar a universal guide across the arcade.
 ## Review Items
 
 Previous fixed/review bug listings should not be carried forward as active work here. This file tracks current rollout notes and remaining avatar-guide tasks only.
+
+## My Avatar Plan
+
+Goal: add a `My Avatar` button next to `Avatar Shop` for interacting with the equipped avatar, separate from buying clothes and pets.
+
+Suggested first version:
+
+- Home placement: add a `My Avatar` button beside `Avatar Shop`; on mobile the two buttons stack.
+- Modal view: show the current avatar and pet in a small room scene with mood/status bars.
+- Needs: `Energy`, `Hunger`, `Happiness`, and `Tricks`.
+- Spend stars on care items:
+  - Food: small hunger refill, low cost.
+  - Treats: happiness boost and trick-training bonus, medium cost.
+  - Better bed: one-time upgrade that increases energy recovery, higher cost.
+- Tricks: train one trick at a time, such as wave, spin, moonwalk, and rocket pose. Training costs energy or treats and unlocks a short animation/state.
+- Persistence: store care state under `masonArcade.avatarCare` so it shares the existing arcade bank.
+- Rewards: caring for the avatar should be fun but not block games; optional small daily star bonus after feeding/training.

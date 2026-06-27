@@ -6,7 +6,7 @@
 <script src="ios-app.js"></script>
 <script src="avatar.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
-<title>Space Jump!</title>
+<title>Land Jump!</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -27,10 +27,10 @@
     inset: 0;
     pointer-events: none;
     background:
-      radial-gradient(circle at 18% 18%, rgba(255,215,0,0.16), transparent 16%),
-      radial-gradient(circle at 82% 8%, rgba(50,173,230,0.14), transparent 13%),
-      radial-gradient(circle at 78% 82%, rgba(175,82,222,0.18), transparent 17%);
-    opacity: 0.8;
+      radial-gradient(circle at 14% 24%, rgba(255,215,0,0.15), transparent 16%),
+      radial-gradient(circle at 86% 15%, rgba(50,173,230,0.13), transparent 14%),
+      radial-gradient(circle at 82% 84%, rgba(175,82,222,0.2), transparent 18%);
+    opacity: 0.85;
   }
   #home-link {
     position: fixed;
@@ -65,7 +65,7 @@
   .hud {
     width: min(500px, 96vw);
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 7px;
   }
   .hud-card {
@@ -90,10 +90,6 @@
     font-size: clamp(0.94rem, 3.3vw, 1.26rem);
     line-height: 1.1;
     text-shadow: 0 0 12px rgba(255,200,0,0.35);
-  }
-  #moon-val {
-    font-size: clamp(0.84rem, 2.8vw, 1.06rem);
-    letter-spacing: 1px;
   }
   .board {
     width: min(500px, 96vw);
@@ -173,7 +169,6 @@
     .hud-card { min-height: 48px; padding: 6px 3px 5px; border-radius: 13px; }
     .hud-card small { font-size: 0.54rem; }
     .hud-card strong { font-size: 0.9rem; }
-    #moon-val { font-size: 0.82rem; }
     .board { padding: 6px; border-radius: 18px; }
     #canvas { border-radius: 12px; }
     .mode-btn { min-height: 44px; border-radius: 14px; font-size: 0.92rem; }
@@ -184,19 +179,18 @@
 <body>
 <a id="home-link" href="index.html">🏠 Home</a>
 
-<main class="shell" aria-label="Space Jump game">
-  <h1>🌙 Space Jump 🚀</h1>
+<main class="shell" aria-label="Land Jump game">
+  <h1>🪨 Land Jump 🚀</h1>
   <div class="hud" aria-live="polite">
     <div class="hud-card"><small>Mode</small><strong id="mode-val">Easy</strong></div>
     <div class="hud-card"><small>Score</small><strong id="score-val">0</strong></div>
     <div class="hud-card"><small>Coins <span id="mult-val">x1</span></small><strong id="coins-val">0</strong></div>
-    <div class="hud-card"><small>Moon</small><strong id="moon-val">○○○</strong></div>
     <div class="hud-card"><small>Best</small><strong id="best-val">0</strong></div>
   </div>
   <div class="board">
     <canvas id="canvas" width="500" height="650"></canvas>
   </div>
-  <div class="modes" role="group" aria-label="Space Jump difficulty">
+  <div class="modes" role="group" aria-label="Land Jump difficulty">
     <button class="mode-btn easy active" type="button" data-mode="easy">⭐ Easy</button>
     <button class="mode-btn hard" type="button" data-mode="hard">🚀 Hard</button>
     <button class="mode-btn harder" type="button" data-mode="harder">🪐 Harder</button>
@@ -204,7 +198,7 @@
   <div id="status">Tap, click, or press Space to jump.</div>
 </main>
 
-<div id="jump-avatar-guide"></div>
+<div id="land-avatar-guide"></div>
 
 <script>
 // ── SHARED ARCADE BANK ──
@@ -224,100 +218,97 @@ const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 const W = canvas.width;
 const H = canvas.height;
+const GROUND_Y = 510;
 const modeEl = document.getElementById('mode-val');
 const scoreEl = document.getElementById('score-val');
 const coinsEl = document.getElementById('coins-val');
 const multEl = document.getElementById('mult-val');
-const moonEl = document.getElementById('moon-val');
 const bestEl = document.getElementById('best-val');
 const statusEl = document.getElementById('status');
 const modeButtons = Array.from(document.querySelectorAll('.mode-btn'));
 
 const MODES = {
-  easy:   { label:'Easy',   gravity:0.18, jump:-4.9,  speed:1.55, gap:286, gateEvery:176, hazardChance:0,    moonChance:0.48, scoreRate:0.038, firstGate:96, hitScale:0.74, gateInset:24 },
-  hard:   { label:'Hard',   gravity:0.28, jump:-5.95, speed:2.85, gap:164, gateEvery:101, hazardChance:0.28, moonChance:0.36, scoreRate:0.064, firstGate:36, hitScale:0.86, gateInset:12 },
-  harder: { label:'Harder', gravity:0.32, jump:-6.35, speed:3.35, gap:136, gateEvery:88,  hazardChance:0.36, moonChance:0.31, scoreRate:0.078, firstGate:28, hitScale:0.86, gateInset:12 }
+  easy:   { label:'Easy',   gravity:0.46, jump:-11.2, speed:2.05, meteorEvery:132, meteorSize:32, coinEvery:86,  scoreRate:0.045, firstMeteor:108, hitScale:0.72 },
+  hard:   { label:'Hard',   gravity:0.52, jump:-11.9, speed:2.8,  meteorEvery:98,  meteorSize:36, coinEvery:74,  scoreRate:0.062, firstMeteor:74,  hitScale:0.84 },
+  harder: { label:'Harder', gravity:0.58, jump:-12.5, speed:3.35, meteorEvery:78,  meteorSize:39, coinEvery:63,  scoreRate:0.078, firstMeteor:58,  hitScale:0.88 }
 };
 
 const SPRITES = {
-  astronaut:[0,0], topRock:[1,0], coin:[2,0], boost:[3,0],
-  bottomRock:[0,1], hazard:[3,1],
-  moon0:[0,2], moon1:[1,2], moon2:[2,2], planet:[3,2]
+  run:[0,0], jump:[1,0], meteor:[2,0],
+  smallMeteor:[0,1], coin:[1,1], boost:[2,1],
+  ground:[0,2], planet:[1,2], rock:[2,2]
 };
 const spriteSheet = new Image();
 let spritesReady = false;
 spriteSheet.onload = () => { spritesReady = true; };
-spriteSheet.src = 'assets/space-jump-sprites.png';
+spriteSheet.src = 'assets/land-jump-sprites.png';
 
-const player = { x: 118, y: H * 0.48, vy: 0, r: 25, angle: 0 };
+const player = { x: 112, y: GROUND_Y, vy: 0, w: 70, h: 82, onGround: true, bob: 0 };
 let activeMode = 'easy';
 let cfg = MODES[activeMode];
 let state = 'ready';
 let score = 0;
 let coinsRun = 0;
-let moonPieces = 0;
-let moonCycles = 0;
 let boostTimer = 0;
-let gates = [];
+let meteors = [];
 let pickups = [];
-let hazards = [];
 let bursts = [];
 let stars = [];
 let frame = 0;
-let gateTimer = 0;
+let meteorTimer = 0;
+let coinTimer = 0;
 let flashTimer = 0;
 let best = getBest(activeMode);
 let lastTime = 0;
-let parallax = 0;
+let groundOffset = 0;
 
 function initStars(){
-  stars = Array.from({length: 115}, () => ({
+  stars = Array.from({length: 110}, () => ({
     x: Math.random() * W,
     y: Math.random() * H,
-    r: Math.random() * 1.6 + 0.35,
-    d: Math.random() * 0.8 + 0.25,
+    r: Math.random() * 1.5 + 0.35,
+    d: Math.random() * 0.7 + 0.24,
     tw: Math.random() * Math.PI * 2
   }));
 }
 
 function getBest(modeKey){
   const b = arcadeLoad();
-  const bests = b.bestSpaceJump || {};
+  const bests = b.bestLandJump || {};
   return bests[modeKey] || 0;
 }
 
 function saveBest(value){
   const b = arcadeLoad();
-  const bests = {...(b.bestSpaceJump || {})};
+  const bests = {...(b.bestLandJump || {})};
   if (value > (bests[activeMode] || 0)) {
     bests[activeMode] = value;
-    b.bestSpaceJump = bests;
-    b.bestSpaceJumpOverall = Math.max(value, b.bestSpaceJumpOverall || 0);
+    b.bestLandJump = bests;
+    b.bestLandJumpOverall = Math.max(value, b.bestLandJumpOverall || 0);
     arcadeSave(b);
   }
 }
 
 function reset(){
   cfg = MODES[activeMode];
-  player.y = H * 0.48;
+  player.y = GROUND_Y;
   player.vy = 0;
-  player.angle = 0;
+  player.onGround = true;
+  player.bob = 0;
   state = 'ready';
   score = 0;
   coinsRun = 0;
-  moonPieces = 0;
-  moonCycles = 0;
   boostTimer = 0;
-  gates = [];
+  meteors = [];
   pickups = [];
-  hazards = [];
   bursts = [];
   frame = 0;
-  gateTimer = 42;
+  meteorTimer = cfg.firstMeteor;
+  coinTimer = 42;
   flashTimer = 0;
   best = getBest(activeMode);
   updateHUD();
-  statusEl.textContent = `${cfg.label} mode ready. Tap the canvas to launch.`;
+  statusEl.textContent = `${cfg.label} mode ready. Jump over meteors and collect coins.`;
 }
 
 function updateHUD(){
@@ -326,17 +317,16 @@ function updateHUD(){
   scoreEl.textContent = scoreInt;
   coinsEl.textContent = coinsRun;
   multEl.textContent = `x${coinMultiplier()}`;
-  moonEl.textContent = '🌙'.repeat(moonPieces) + '○'.repeat(3 - moonPieces);
   bestEl.textContent = Math.max(best, scoreInt);
   if (state === 'playing') {
     statusEl.textContent = boostTimer > 0
       ? `Coin boost active: x${coinMultiplier()} coins.`
-      : `Coins grow over time: x${baseMultiplier()} now.`;
+      : `Jump over meteors. Coins are x${baseMultiplier()} now.`;
   }
 }
 
 function baseMultiplier(){
-  return Math.min(5, 1 + Math.floor(score / 32));
+  return Math.min(5, 1 + Math.floor(score / 42));
 }
 
 function coinMultiplier(){
@@ -354,68 +344,36 @@ function jump(){
   if (state === 'over') reset();
   if (state === 'ready') {
     state = 'playing';
-    gateTimer = cfg.firstGate || 24;
+    meteorTimer = cfg.firstMeteor;
   }
+  if (!player.onGround) return;
   player.vy = cfg.jump;
-  player.angle = -0.28;
-  burst(player.x - 24, player.y + 18, 'jump', '#72D7F5');
+  player.onGround = false;
+  burst(player.x - 18, player.y - 22, 'jump', '#72D7F5');
   tone(540, 0.055, 'sine', 0.08);
 }
 
-function spawnGate(){
-  const minY = 86 + cfg.gap / 2;
-  const maxY = H - 96 - cfg.gap / 2;
-  const gapY = minY + Math.random() * (maxY - minY);
-  const gate = {
-    x: W + 34,
-    w: 88,
-    gapY,
-    gap: cfg.gap,
-    passed: false
-  };
-  gates.push(gate);
-  spawnPickups(gate);
-  if (Math.random() < cfg.hazardChance) {
-    hazards.push({
-      x: W + 190 + Math.random() * 120,
-      y: 92 + Math.random() * (H - 184),
-      r: 24,
-      speed: cfg.speed * (1.1 + Math.random() * 0.42),
-      wobble: Math.random() * 7
-    });
-  }
+function spawnMeteor(){
+  const big = activeMode !== 'easy' && Math.random() < 0.72;
+  meteors.push({
+    x: W + 76,
+    y: GROUND_Y - (big ? 34 : 25),
+    r: big ? cfg.meteorSize : Math.max(24, cfg.meteorSize - 9),
+    speed: cfg.speed * (1 + Math.random() * 0.14),
+    small: !big,
+    rot: -0.24
+  });
 }
 
-function spawnPickups(gate){
-  const coinCount = Math.random() < 0.62 ? 3 : 2;
-  for (let i = 0; i < coinCount; i++) {
-    pickups.push({
-      type: 'coin',
-      x: gate.x + 135 + i * 42,
-      y: gate.gapY + (i - 1) * 26 + (Math.random() * 12 - 6),
-      r: 16,
-      spin: Math.random() * Math.PI * 2
-    });
-  }
-  if (Math.random() < 0.24) {
-    pickups.push({
-      type: 'boost',
-      x: gate.x + 260,
-      y: gate.gapY + (Math.random() * 76 - 38),
-      r: 21,
-      spin: 0
-    });
-  }
-  if (Math.random() < cfg.moonChance) {
-    pickups.push({
-      type: 'moon',
-      piece: moonPieces % 3,
-      x: gate.x + 330,
-      y: gate.gapY + (Math.random() * 92 - 46),
-      r: 22,
-      spin: Math.random() * 0.4 - 0.2
-    });
-  }
+function spawnPickup(){
+  const jumpLane = Math.random() < 0.62;
+  pickups.push({
+    type: Math.random() < 0.14 ? 'boost' : 'coin',
+    x: W + 60,
+    y: jumpLane ? GROUND_Y - 118 - Math.random() * 32 : GROUND_Y - 58,
+    r: jumpLane ? 17 : 15,
+    spin: Math.random() * Math.PI * 2
+  });
 }
 
 function update(dt){
@@ -426,63 +384,46 @@ function update(dt){
   }
 
   frame += dt;
-  parallax += cfg.speed * dt;
+  groundOffset = (groundOffset + cfg.speed * dt) % 170;
   score += cfg.scoreRate * dt;
+  player.bob += 0.18 * dt;
   if (boostTimer > 0) boostTimer = Math.max(0, boostTimer - dt);
   if (flashTimer > 0) flashTimer = Math.max(0, flashTimer - dt);
 
   player.vy += cfg.gravity * dt;
   player.y += player.vy * dt;
-  player.angle = Math.max(-0.35, Math.min(0.58, player.vy * 0.055));
-  if (player.y < 28) {
-    player.y = 28;
+  if (player.y >= GROUND_Y) {
+    if (!player.onGround && player.vy > 0) burst(player.x - 18, GROUND_Y - 12, 'tap', '#C9C3B4', 0.75);
+    player.y = GROUND_Y;
     player.vy = 0;
-  }
-  if (player.y > H - 30) endRun('low');
-
-  gateTimer -= dt;
-  if (gateTimer <= 0) {
-    spawnGate();
-    gateTimer = cfg.gateEvery;
+    player.onGround = true;
   }
 
-  gates.forEach(g => {
-    g.x -= cfg.speed * dt;
-    if (!g.passed && g.x + g.w < player.x) {
-      g.passed = true;
-      score += 4;
-      burst(g.x + g.w, g.gapY, '+4', '#FFD700');
-      tone(660, 0.05, 'triangle', 0.06);
-    }
+  meteorTimer -= dt;
+  if (meteorTimer <= 0) {
+    spawnMeteor();
+    const wobble = activeMode === 'easy' ? 36 : 22;
+    meteorTimer = cfg.meteorEvery + Math.random() * wobble;
+  }
+
+  coinTimer -= dt;
+  if (coinTimer <= 0) {
+    spawnPickup();
+    coinTimer = cfg.coinEvery + Math.random() * 28;
+  }
+
+  meteors.forEach(m => {
+    m.x -= m.speed * dt;
+    if (hitCircle(player.x + 6, player.y - 42, 28 * cfg.hitScale, m.x, m.y, m.r)) endRun();
   });
-  gates = gates.filter(g => g.x > -130);
+  meteors = meteors.filter(m => m.x > -90);
 
   pickups.forEach(p => {
     p.x -= cfg.speed * dt;
     p.spin += 0.05 * dt;
-    if (hitCircle(player.x, player.y, player.r, p.x, p.y, p.r)) collectPickup(p);
+    if (hitCircle(player.x + 2, player.y - 44, 31, p.x, p.y, p.r)) collectPickup(p);
   });
-  pickups = pickups.filter(p => !p.dead && p.x > -80);
-
-  hazards.forEach(h => {
-    h.x -= h.speed * dt;
-    h.y += Math.sin((frame + h.wobble) * 0.06) * 0.55 * dt;
-    if (hitCircle(player.x, player.y, player.r * 0.78, h.x, h.y, h.r)) endRun('star');
-  });
-  hazards = hazards.filter(h => h.x > -90);
-
-  gates.forEach(g => {
-    const topH = g.gapY - g.gap / 2;
-    const bottomY = g.gapY + g.gap / 2;
-    const inset = cfg.gateInset || 12;
-    const hitRadius = player.r * (cfg.hitScale || 0.86);
-    if (
-      circleRect(player.x, player.y, hitRadius, g.x + inset, -12, g.w - inset * 2, topH + 4) ||
-      circleRect(player.x, player.y, hitRadius, g.x + inset, bottomY - 4, g.w - inset * 2, H - bottomY + 16)
-    ) {
-      endRun('rock');
-    }
-  });
+  pickups = pickups.filter(p => !p.dead && p.x > -70);
 
   bursts.forEach(b => { b.life -= 0.04 * dt; b.y -= 0.9 * dt; });
   bursts = bursts.filter(b => b.life > 0);
@@ -491,40 +432,23 @@ function update(dt){
 
 function collectPickup(p){
   p.dead = true;
-  if (p.type === 'coin') {
-    const value = coinMultiplier();
-    coinsRun += value;
-    arcadeEarn(value);
-    burst(p.x, p.y, `+${value}`, '#FFD700');
-    tone(880, 0.06, 'sine', 0.08);
-    return;
-  }
   if (p.type === 'boost') {
-    const bonus = 5 * baseMultiplier();
-    boostTimer = Math.max(boostTimer, 560);
+    const bonus = 4 * baseMultiplier();
+    boostTimer = Math.max(boostTimer, 520);
     coinsRun += bonus;
     arcadeEarn(bonus);
     burst(p.x, p.y, `x2 +${bonus}`, '#72D7F5');
     chime();
     return;
   }
-  if (p.type === 'moon') {
-    moonPieces++;
-    burst(p.x, p.y, `${moonPieces}/3`, '#FFF2A8');
-    tone(740 + moonPieces * 80, 0.08, 'sine', 0.08);
-    if (moonPieces >= 3) {
-      moonPieces = 0;
-      moonCycles++;
-      coinsRun += 25;
-      score += 12;
-      arcadeEarn(25);
-      burst(W / 2, H / 2 - 60, 'FULL MOON +25', '#FFF2A8', 1.3);
-      chime();
-    }
-  }
+  const value = coinMultiplier();
+  coinsRun += value;
+  arcadeEarn(value);
+  burst(p.x, p.y, `+${value}`, '#FFD700');
+  tone(880, 0.06, 'sine', 0.08);
 }
 
-function endRun(reason){
+function endRun(){
   if (state !== 'playing') return;
   state = 'over';
   flashTimer = 16;
@@ -533,8 +457,7 @@ function endRun(reason){
     best = scoreInt;
     saveBest(scoreInt);
   }
-  const note = reason === 'star' ? 'Shooting star!' : reason === 'rock' ? 'Asteroid bump!' : 'Low orbit!';
-  statusEl.textContent = `${note} Score ${scoreInt}, coins ${coinsRun}. Tap to try again.`;
+  statusEl.textContent = `Meteor bump! Score ${scoreInt}, coins ${coinsRun}. Tap to try again.`;
   tone(190, 0.16, 'sawtooth', 0.05);
   updateHUD();
 }
@@ -543,33 +466,26 @@ function hitCircle(x1,y1,r1,x2,y2,r2){
   return Math.hypot(x1 - x2, y1 - y2) < r1 + r2;
 }
 
-function circleRect(cx, cy, r, rx, ry, rw, rh){
-  const nx = Math.max(rx, Math.min(cx, rx + rw));
-  const ny = Math.max(ry, Math.min(cy, ry + rh));
-  return Math.hypot(cx - nx, cy - ny) < r;
-}
-
 function burst(x, y, text, color, scale = 1){
   bursts.push({ x, y, text, color, life: 1, scale });
 }
 
 function draw(){
   drawBackground();
-  gates.forEach(drawGate);
   pickups.forEach(drawPickup);
-  hazards.forEach(drawHazard);
+  meteors.forEach(drawMeteor);
   drawPlayer();
   drawBursts();
   if (flashTimer > 0) {
     ctx.fillStyle = `rgba(255,60,80,${0.16 * (flashTimer / 16)})`;
     ctx.fillRect(0, 0, W, H);
   }
-  if (state === 'ready') drawOverlay('Space Jump', `${cfg.label} mode`, 'Tap, click, or press Space');
+  if (state === 'ready') drawOverlay('Land Jump', `${cfg.label} mode`, 'Tap, click, or press Space');
   if (state === 'over') drawOverlay('Nice jumping!', `Score ${Math.floor(score)}  ·  Coins ${coinsRun}`, 'Tap to play again');
 }
 
 function drawBackground(){
-  const grad = ctx.createRadialGradient(W * 0.5, H * 0.18, 10, W * 0.5, H * 0.48, H * 0.72);
+  const grad = ctx.createRadialGradient(W * 0.5, H * 0.16, 10, W * 0.5, H * 0.5, H * 0.74);
   grad.addColorStop(0, '#181069');
   grad.addColorStop(0.62, '#070720');
   grad.addColorStop(1, '#030310');
@@ -577,7 +493,7 @@ function drawBackground(){
   ctx.fillRect(0, 0, W, H);
 
   stars.forEach(s => {
-    s.x -= cfg.speed * s.d * 0.18;
+    s.x -= cfg.speed * s.d * 0.14;
     s.tw += 0.035;
     if (s.x < -3) { s.x = W + 3; s.y = Math.random() * H; }
     ctx.save();
@@ -589,63 +505,44 @@ function drawBackground(){
     ctx.restore();
   });
 
-  drawSprite('planet', W - 82 - (parallax * 0.05 % 40), 112, 118, 92, -0.08, 0.8);
-  ctx.save();
-  ctx.globalAlpha = 0.24;
-  ctx.fillStyle = '#3b2d8f';
-  ctx.beginPath();
-  ctx.ellipse(62, H - 30, 110, 44, -0.12, 0, Math.PI * 2);
-  ctx.ellipse(W - 42, H - 18, 94, 34, 0.2, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
+  drawSprite('planet', W - 86, 104, 120, 98, -0.08, 0.72);
+  drawSprite('rock', W - 58 - (groundOffset * 0.55), GROUND_Y + 30, 92, 72, 0, 0.66);
+  drawGround();
 }
 
-function drawGate(g){
-  const topH = Math.max(30, g.gapY - g.gap / 2);
-  const bottomY = g.gapY + g.gap / 2;
-  const bottomH = Math.max(30, H - bottomY);
-  drawSprite('topRock', g.x + g.w / 2, topH / 2 - 2, g.w * 1.36, topH + 34, 0, 1);
-  drawSprite('bottomRock', g.x + g.w / 2, bottomY + bottomH / 2 + 2, g.w * 1.36, bottomH + 34, 0, 1);
-
+function drawGround(){
   ctx.save();
-  ctx.strokeStyle = 'rgba(255,215,0,0.18)';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([8, 12]);
-  ctx.beginPath();
-  ctx.moveTo(g.x + g.w / 2, g.gapY - g.gap / 2 + 12);
-  ctx.lineTo(g.x + g.w / 2, g.gapY + g.gap / 2 - 12);
-  ctx.stroke();
+  ctx.fillStyle = '#2a2550';
+  ctx.fillRect(0, GROUND_Y + 36, W, H - GROUND_Y);
+  for (let x = -180 + groundOffset; x < W + 190; x += 170) {
+    drawSprite('ground', x, GROUND_Y + 44, 180, 98, 0, 1);
+  }
   ctx.restore();
 }
 
 function drawPickup(p){
-  if (p.type === 'coin') {
-    drawSprite('coin', p.x, p.y, 46, 46, Math.sin(p.spin) * 0.12, 1);
-  } else if (p.type === 'boost') {
-    drawSprite('boost', p.x, p.y, 58, 58, Math.sin(p.spin) * 0.12, 1);
-  } else {
-    drawSprite(`moon${p.piece || 0}`, p.x, p.y, 56, 56, Math.sin(p.spin) * 0.16, 1);
-  }
+  if (p.type === 'boost') drawSprite('boost', p.x, p.y, 56, 56, Math.sin(p.spin) * 0.1, 1);
+  else drawSprite('coin', p.x, p.y, 44, 44, Math.sin(p.spin) * 0.12, 1);
 }
 
-function drawHazard(h){
-  drawSprite('hazard', h.x, h.y, 82, 48, -0.42, 1);
+function drawMeteor(m){
+  drawSprite(m.small ? 'smallMeteor' : 'meteor', m.x, m.y, m.small ? 72 : 96, m.small ? 44 : 60, m.rot, 1);
 }
 
 function drawPlayer(){
-  ctx.save();
-  ctx.translate(player.x, player.y);
-  ctx.rotate(player.angle);
-  drawSprite('astronaut', 0, 0, 88, 88, 0, 1);
+  const sprite = player.onGround ? 'run' : 'jump';
+  const bob = player.onGround ? Math.sin(player.bob) * 2.5 : 0;
+  drawSprite(sprite, player.x, player.y - 44 + bob, 92, 92, player.onGround ? 0 : -0.08, 1);
   if (boostTimer > 0) {
-    ctx.globalAlpha = 0.48 + 0.22 * Math.sin(frame * 0.28);
+    ctx.save();
+    ctx.globalAlpha = 0.46 + 0.2 * Math.sin(frame * 0.26);
     ctx.strokeStyle = '#72D7F5';
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.arc(0, 0, 38, 0, Math.PI * 2);
+    ctx.arc(player.x + 2, player.y - 44, 39, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.restore();
   }
-  ctx.restore();
 }
 
 function drawBursts(){
@@ -696,7 +593,7 @@ function drawSprite(name, cx, cy, dw, dh, angle = 0, alpha = 1){
     return;
   }
   const [col, row] = SPRITES[name];
-  const sw = spriteSheet.naturalWidth / 4;
+  const sw = spriteSheet.naturalWidth / 3;
   const sh = spriteSheet.naturalHeight / 3;
   ctx.save();
   ctx.translate(cx, cy);
@@ -721,22 +618,17 @@ function drawFallback(name, cx, cy, dw, dh, angle, alpha){
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(name === 'boost' ? 'x2' : '★', 0, 1);
-  } else if (name.startsWith('moon')) {
-    ctx.fillStyle = '#FFF2A8';
-    ctx.beginPath();
-    ctx.arc(0, 0, Math.min(dw, dh) / 2.4, 0.25, Math.PI * 1.55);
-    ctx.fill();
-  } else if (name === 'astronaut') {
+  } else if (name === 'run' || name === 'jump') {
     ctx.fillStyle = '#fff';
     ctx.beginPath();
-    ctx.arc(0, 0, dw * 0.32, 0, Math.PI * 2);
+    ctx.arc(0, -8, dw * 0.3, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#72D7F5';
     ctx.beginPath();
-    ctx.arc(5, -4, dw * 0.18, 0, Math.PI * 2);
+    ctx.arc(6, -12, dw * 0.16, 0, Math.PI * 2);
     ctx.fill();
   } else {
-    ctx.fillStyle = name === 'hazard' ? '#FFD700' : '#D85A30';
+    ctx.fillStyle = name.includes('Meteor') || name === 'meteor' ? '#FF9500' : '#8a8177';
     roundRect(-dw / 2, -dh / 2, dw, dh, 16);
     ctx.fill();
   }
@@ -807,15 +699,15 @@ requestAnimationFrame(loop);
 
 if (window.ArcadeAvatar) {
   ArcadeAvatar.mountGuide({
-    rootId: 'jump-avatar-guide',
-    gameId: 'space-jump',
-    title: 'Space Jump Mission',
+    rootId: 'land-avatar-guide',
+    gameId: 'land-jump',
+    title: 'Land Jump Mission',
     primaryLabel: 'Start jumping',
     messages: [
-      'Pick Easy, Hard, or Harder before you launch.',
-      'Tap, click, or press Space to jump through the asteroid gaps.',
-      'Easy has bigger asteroid gaps and no shooting stars. Hard and Harder add more danger.',
-      'Grab x2 powerups for extra coins, and collect 3 moon pieces to earn a bonus.'
+      'Pick Easy, Hard, or Harder before you start.',
+      'Tap, click, or press Space to jump over meteors flying toward you.',
+      'Collect coins while you run. The longer you last, the more each coin is worth.',
+      'Grab x2 powerups for a short coin boost.'
     ]
   });
 }
