@@ -60,22 +60,80 @@ header { text-align: center; margin-bottom: 8px; }
 .wallet-label { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 5px; letter-spacing: 1px; }
 .wallet-div { width: 2px; align-self: stretch; background: rgba(255,255,255,0.15); }
 
-.avatar-home {
-  margin: 18px auto 12px;
-  max-width: 760px;
-  padding: 18px;
-  background: rgba(255,255,255,0.075);
-  border: 1px solid rgba(255,215,0,0.32);
-  border-radius: 24px;
-  box-shadow: 0 0 30px rgba(255,200,0,0.1);
+.avatar-shop-row {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0 12px;
 }
-.avatar-home-title {
+.avatar-shop-button {
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 999px;
+  padding: 13px 26px;
+  background: #FFD700;
+  color: #7A3800;
+  box-shadow: 0 6px 0 #B06A00, 0 12px 28px rgba(0,0,0,0.28);
+  cursor: pointer;
+  font-size: 1.05rem;
+}
+.avatar-shop-button:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #B06A00, 0 8px 20px rgba(0,0,0,0.24);
+}
+.avatar-shop-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(3,3,16,0.74);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.avatar-shop-modal[hidden] { display: none; }
+.avatar-shop-dialog {
+  width: min(860px, 94vw);
+  max-height: min(88vh, 820px);
+  overflow: auto;
+  padding: 18px;
+  background: rgba(14,14,42,0.97);
+  border: 2px solid rgba(255,215,0,0.44);
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.54);
+}
+.avatar-shop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.avatar-shop-title {
   text-align: center;
   color: #FFD700;
   font-size: 1.55rem;
-  margin-bottom: 12px;
   text-shadow: 0 0 16px rgba(255,200,0,0.32);
 }
+.avatar-shop-close {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+body.avatar-shop-open { overflow: hidden; }
 
 .hint { text-align: center; font-size: 0.95rem; color: rgba(255,255,255,0.6); margin: 8px 0 22px; }
 
@@ -135,6 +193,10 @@ footer { text-align: center; margin-top: 34px; }
   .title-main { font-size: 2.1rem; }
   .wallet { gap: 16px; padding: 14px 18px; }
   .wallet-num { font-size: 1.9rem; }
+  .avatar-shop-button { width: 100%; max-width: 300px; }
+  .avatar-shop-modal { align-items: flex-end; padding: 12px; }
+  .avatar-shop-dialog { max-height: 86vh; padding: 14px; border-radius: 20px; }
+  .avatar-shop-title { font-size: 1.22rem; }
   .card-icon { font-size: 3rem; }
 }
 </style>
@@ -159,10 +221,20 @@ footer { text-align: center; margin-top: 34px; }
       <div class="wallet-label">🏆 STARS EARNED</div>
     </div>
   </div>
-  <section class="avatar-home" aria-label="Avatar shop">
-    <div class="avatar-home-title">🧑‍🚀 Avatar Shop</div>
-    <div id="home-avatar-shop"></div>
-  </section>
+  <div class="avatar-shop-row">
+    <button class="avatar-shop-button" id="avatar-shop-open" type="button" aria-haspopup="dialog" aria-controls="avatar-shop-modal">
+      <span>🧑‍🚀</span><span>Avatar Shop</span>
+    </button>
+  </div>
+  <div class="avatar-shop-modal" id="avatar-shop-modal" hidden>
+    <div class="avatar-shop-dialog" role="dialog" aria-modal="true" aria-labelledby="avatar-shop-title">
+      <div class="avatar-shop-head">
+        <div class="avatar-shop-title" id="avatar-shop-title">🧑‍🚀 Avatar Shop</div>
+        <button class="avatar-shop-close" id="avatar-shop-close" type="button" aria-label="Close avatar shop">×</button>
+      </div>
+      <div id="home-avatar-shop"></div>
+    </div>
+  </div>
 
   <div class="hint">Earn stars in any game — they unlock new games and buy avatar gear!</div>
 
@@ -269,13 +341,48 @@ function toast(msg){
   document.body.appendChild(d); setTimeout(()=>d.remove(), 3000);
 }
 
+let avatarShopMounted = false;
+const avatarShopModal = document.getElementById('avatar-shop-modal');
+const avatarShopOpen = document.getElementById('avatar-shop-open');
+const avatarShopClose = document.getElementById('avatar-shop-close');
+
+function ensureAvatarShop(){
+  if (!window.ArcadeAvatar || avatarShopMounted) return;
+  ArcadeAvatar.mountShop({
+    rootId: 'home-avatar-shop',
+    onToast: toast,
+    onChange: render,
+    charSize: 135,
+    petSize: 78
+  });
+  avatarShopMounted = true;
+}
+
+function refreshAvatarShop(){
+  if (window.ArcadeAvatar && avatarShopMounted) ArcadeAvatar.refreshShop('home-avatar-shop');
+}
+
+function openAvatarShop(){
+  ensureAvatarShop();
+  refreshAvatarShop();
+  avatarShopModal.hidden = false;
+  document.body.classList.add('avatar-shop-open');
+  avatarShopClose.focus();
+}
+
+function closeAvatarShop(){
+  avatarShopModal.hidden = true;
+  document.body.classList.remove('avatar-shop-open');
+  avatarShopOpen.focus();
+}
+
 function resetAll(){
   if (!confirm('Reset ALL stars, unlocks and dress-up items? This cannot be undone.')) return;
   localStorage.removeItem(ARCADE_KEY);
   localStorage.removeItem('mathStars');
   const b = {}; b.migrated = true; arcadeSave(b);
   render();
-  if (window.ArcadeAvatar) ArcadeAvatar.refreshShop('home-avatar-shop');
+  refreshAvatarShop();
   toast('Progress reset. Fresh start! 🌟');
 }
 
@@ -308,25 +415,24 @@ function resetAll(){
 })();
 
 render();
-if (window.ArcadeAvatar) {
-  ArcadeAvatar.mountShop({
-    rootId: 'home-avatar-shop',
-    onToast: toast,
-    onChange: render,
-    charSize: 135,
-    petSize: 78
-  });
-}
+avatarShopOpen.addEventListener('click', openAvatarShop);
+avatarShopClose.addEventListener('click', closeAvatarShop);
+avatarShopModal.addEventListener('click', e => {
+  if (e.target === avatarShopModal) closeAvatarShop();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !avatarShopModal.hidden) closeAvatarShop();
+});
 // Refresh when returning to the tab (stars earned in a game)
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     render();
-    if (window.ArcadeAvatar) ArcadeAvatar.refreshShop('home-avatar-shop');
+    refreshAvatarShop();
   }
 });
 window.addEventListener('focus', () => {
   render();
-  if (window.ArcadeAvatar) ArcadeAvatar.refreshShop('home-avatar-shop');
+  refreshAvatarShop();
 });
 </script>
 </body>

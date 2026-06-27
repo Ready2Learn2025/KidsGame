@@ -1,13 +1,14 @@
 /* Shared Space Arcade avatar, shop, and dress-up persistence. */
 (function(){
   const ARCADE_KEY = 'masonArcade';
-  const DEFAULT_CHAR = { color:'red', hat:'none', outfit:'none', pet:'none' };
-  const TAB_KEYS = { colors:'color', hats:'hat', outfits:'outfit', pets:'pet' };
+  const DEFAULT_CHAR = { color:'red', hat:'none', outfit:'none', pet:'none', petHat:'none' };
+  const TAB_KEYS = { colors:'color', hats:'hat', outfits:'outfit', pets:'pet', petHats:'petHat' };
   const TABS = [
     { id:'colors', label:'🎨 Colors' },
     { id:'hats', label:'🎩 Hats' },
     { id:'outfits', label:'👕 Outfits' },
     { id:'pets', label:'🐾 Pets' },
+    { id:'petHats', label:'🎀 Pet Hats' },
   ];
 
   const CATALOG_DATA = {
@@ -48,6 +49,14 @@
       {id:'cat',    label:'Cat',    price:30, emoji:'🐱', owned:false},
       {id:'donkey', label:'Donkey', price:40, emoji:'🫏', owned:false},
       {id:'slime',  label:'Slime',  price:25, emoji:'🟢', owned:false},
+    ],
+    petHats:[
+      {id:'none',   label:'No Pet Hat',    price:0,  emoji:'🚫', owned:true },
+      {id:'bow',    label:'Bow',           price:12, emoji:'🎀', owned:false},
+      {id:'party',  label:'Party Pet Hat', price:16, emoji:'🎉', owned:false},
+      {id:'crown',  label:'Pet Crown',     price:24, emoji:'👑', owned:false},
+      {id:'cap',    label:'Star Cap',      price:20, emoji:'🧢', owned:false},
+      {id:'helmet', label:'Bubble Helmet', price:28, emoji:'🫧', owned:false},
     ]
   };
 
@@ -226,9 +235,35 @@
     </svg>`;
   }
 
+  function petHatSvg(petHat){
+    const hats = {
+      bow:`<g transform="translate(50 24)">
+        <path d="M-3 3 C-20 -10 -31 -7 -34 6 C-26 14 -15 15 -3 6Z" fill="#FF2D8E" stroke="#B8005D" stroke-width="2"/>
+        <path d="M3 3 C20 -10 31 -7 34 6 C26 14 15 15 3 6Z" fill="#FF2D8E" stroke="#B8005D" stroke-width="2"/>
+        <circle cx="0" cy="5" r="6" fill="#FFD1E6" stroke="#B8005D" stroke-width="2"/>
+      </g>`,
+      party:`<polygon points="50,5 31,39 69,39" fill="#FF6B35" stroke="#B53010" stroke-width="2"/>
+        <path d="M40 22 H60" stroke="#FFD700" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="50" cy="5" r="5" fill="#FFD700"/>`,
+      crown:`<polygon points="25,39 25,18 36,29 50,10 64,29 75,18 75,39" fill="#FFD700" stroke="#D98A00" stroke-width="2"/>
+        <circle cx="50" cy="13" r="5" fill="#FF3B30"/>
+        <circle cx="30" cy="27" r="4" fill="#007AFF"/>
+        <circle cx="70" cy="27" r="4" fill="#34C759"/>`,
+      cap:`<path d="M29 38 Q35 18 51 18 Q67 18 73 38Z" fill="#2F7BFF" stroke="#0E3C9A" stroke-width="2"/>
+        <path d="M29 38 Q51 48 73 38" fill="#0E3C9A"/>
+        <text x="50" y="34" font-size="16" text-anchor="middle" fill="#FFD700">★</text>`,
+      helmet:`<ellipse cx="50" cy="52" rx="40" ry="38" fill="#AEEBFF" opacity="0.18" stroke="#D8FAFF" stroke-width="4"/>
+        <path d="M22 33 Q50 10 78 33" stroke="white" stroke-width="4" opacity="0.38" fill="none" stroke-linecap="round"/>`,
+      none:''
+    };
+    return hats[petHat] || '';
+  }
+
   function drawPet(target, mood='happy', size=80, char){
     const el = resolveEl(target); if (!el) return;
-    const pet = copyChar(char || getState(false).char).pet;
+    const activeChar = copyChar(char || getState(false).char);
+    const pet = activeChar.pet;
+    const petHat = petHatSvg(activeChar.petHat);
     if (!pet || pet === 'none') { el.innerHTML = ''; return; }
     const ex = mood === 'excited', sad = mood === 'sad';
     const svgs = {
@@ -250,6 +285,7 @@
                <ellipse cx="50" cy="79" rx="6" ry="4" fill="#FF6B9D" opacity="0.85"/>`}
         <ellipse cx="50" cy="105" rx="25" ry="16" fill="#D4901A"/>
         <path d="M75 105 Q94 90 86 75" stroke="#C8860A" stroke-width="7" fill="none" stroke-linecap="round"/>
+        ${petHat}
       </svg>`,
       cat:`<svg viewBox="0 0 100 120" width="${size}" height="${size*1.2}" xmlns="http://www.w3.org/2000/svg">
         <polygon points="22,20 12,48 38,44" fill="#888"/>
@@ -272,6 +308,7 @@
              :`<path d="M44 72 Q50 78 56 72" stroke="#888" stroke-width="2" fill="none" stroke-linecap="round"/>`}
         <ellipse cx="50" cy="106" rx="25" ry="15" fill="#999"/>
         <path d="M75 108 Q100 94 88 72" stroke="#999" stroke-width="9" fill="none" stroke-linecap="round"/>
+        ${petHat}
       </svg>`,
       donkey:`<svg viewBox="0 0 100 128" width="${size}" height="${size*1.28}" xmlns="http://www.w3.org/2000/svg">
         <ellipse cx="30" cy="18" rx="10" ry="22" fill="#888" transform="rotate(-10 30 18)"/>
@@ -290,6 +327,7 @@
              :`<path d="M38 78 Q50 84 62 78" stroke="#666" stroke-width="2.5" fill="none" stroke-linecap="round"/>`}
         <rect x="46" y="28" width="8" height="26" rx="3" fill="#555"/>
         <ellipse cx="50" cy="110" rx="26" ry="15" fill="#888"/>
+        ${petHat}
       </svg>`,
       slime:`<svg viewBox="0 0 100 100" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
         <ellipse cx="50" cy="66" rx="44" ry="30" fill="#00CC44" opacity="0.18"/>
@@ -310,6 +348,7 @@
                <circle cx="58" cy="64" r="3.5" fill="#007722" opacity="0.45"/>`}
         <circle cx="18" cy="50" r="4" fill="#00EE66" opacity="0.45"/>
         <circle cx="84" cy="55" r="3" fill="#00EE66" opacity="0.45"/>
+        ${petHat}
       </svg>`
     };
     el.innerHTML = svgs[pet] || '';
