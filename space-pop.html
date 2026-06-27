@@ -75,16 +75,16 @@
 <body>
 <a id="home-link" href="index.html">🏠 Home</a>
 <h1>👾 SPACE POP 🛸</h1>
-<div id="hud">⭐ <span id="score">0</span> &nbsp;|&nbsp; ⏱️ <span id="time">30</span>s</div>
+<div id="hud">⭐ <span id="score">0</span> &nbsp;|&nbsp; Health: <span id="health">3</span> &nbsp;|&nbsp; ⏱️ <span id="time">30</span>s</div>
 
 <div id="grid">
   <div id="overlay">
     <h2>👾 Space Pop!</h2>
-    <p>Tap the aliens before they hide!<br>Each alien = 1 ⭐ star. You have 30 seconds!</p>
+    <p>Pop aliens, robots, and saucers.<br>Do not pop your pet, or your health goes down!</p>
     <button id="play-btn">▶ START!</button>
   </div>
 </div>
-<div id="hint">Tap or click the aliens as fast as you can! 🚀</div>
+<div id="hint">Pop the space baddies. Leave your pet alone! 🚀</div>
 
 <script>
 // ── SHARED ARCADE BANK ──
@@ -93,23 +93,34 @@ function arcadeLoad(){ try{ return JSON.parse(localStorage.getItem(ARCADE_KEY))|
 function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
 function arcadeEarn(n){ const b=arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(b.earned||0)+n; arcadeSave(b); }
 
-const ALIENS = ['👾','👽','🛸','🤖','😺'];
+const ALIENS = ['👾','👽','🛸','🤖'];
+const PET_EMOJIS = { dog:'🐶', cat:'🐱', donkey:'🫏', slime:'🟢', none:'🐶' };
 const grid = document.getElementById('grid');
 const overlay = document.getElementById('overlay');
 const scoreEl = document.getElementById('score');
+const healthEl = document.getElementById('health');
 const timeEl = document.getElementById('time');
 
-let score = 0, timeLeft = 30, running = false;
+let score = 0, health = 3, timeLeft = 30, running = false;
 let popTimer = null, clockTimer = null;
 const craters = [];
+
+function getPetEmoji(){
+  try {
+    const pet = window.ArcadeAvatar ? ArcadeAvatar.getState().char.pet : 'none';
+    return PET_EMOJIS[pet] || PET_EMOJIS.none;
+  } catch(e) {
+    return PET_EMOJIS.none;
+  }
+}
 
 // Build 9 craters
 for (let i=0;i<9;i++){
   const c = document.createElement('div'); c.className='crater';
   const a = document.createElement('div'); a.className='alien';
-  a.textContent = ALIENS[i % ALIENS.length];
   c.appendChild(a);
   c.dataset.active = '0';
+  c.dataset.kind = 'empty';
   c.addEventListener('click', ()=>hit(c));
   c.addEventListener('touchstart', e=>{ e.preventDefault(); hit(c); }, {passive:false});
   grid.appendChild(c); craters.push(c);
@@ -118,16 +129,26 @@ for (let i=0;i<9;i++){
 function hit(c){
   if (!running || c.dataset.active !== '1') return;
   c.dataset.active = '0';
-  score++; arcadeEarn(1); scoreEl.textContent = score;
   const a = c.querySelector('.alien');
   a.classList.remove('up'); a.classList.add('bonk');
   setTimeout(()=>{ a.classList.remove('bonk'); a.style.bottom=''; }, 260);
-  floatPoint(c);
-  beep(660, 0.08);
+  if (c.dataset.kind === 'pet') {
+    health = Math.max(0, health - 1);
+    healthEl.textContent = health;
+    floatPoint(c, '-1 Health', '#FF6B6B');
+    beep(180, 0.14);
+    if (health <= 0) end('pet');
+  } else {
+    score++; arcadeEarn(1); scoreEl.textContent = score;
+    floatPoint(c, '+1⭐', '#FFD700');
+    beep(660, 0.08);
+  }
+  c.dataset.kind = 'empty';
 }
 
-function floatPoint(c){
-  const f = document.createElement('div'); f.className='float-pt'; f.textContent='+1⭐';
+function floatPoint(c, text, color){
+  const f = document.createElement('div'); f.className='float-pt'; f.textContent=text;
+  f.style.color = color;
   const r = c.getBoundingClientRect(); const gr = grid.getBoundingClientRect();
   f.style.left = (r.left - gr.left + 36) + 'px';
   f.style.top  = (r.top  - gr.top  + 30) + 'px';
@@ -139,16 +160,20 @@ function popRandom(){
   if (!idle.length) return;
   const c = idle[Math.floor(Math.random()*idle.length)];
   const a = c.querySelector('.alien');
+  const isPet = Math.random() < 0.24;
+  c.dataset.kind = isPet ? 'pet' : 'target';
+  a.textContent = isPet ? getPetEmoji() : ALIENS[Math.floor(Math.random()*ALIENS.length)];
   c.dataset.active = '1'; a.classList.add('up');
   const stay = 700 + Math.random()*700;
   setTimeout(()=>{
-    if (c.dataset.active==='1'){ c.dataset.active='0'; a.classList.remove('up'); }
+    if (c.dataset.active==='1'){ c.dataset.active='0'; c.dataset.kind='empty'; a.classList.remove('up'); }
   }, stay);
 }
 
 function start(){
-  score=0; timeLeft=30; running=true;
-  scoreEl.textContent=0; timeEl.textContent=30;
+  clearInterval(popTimer); clearInterval(clockTimer);
+  score=0; health=3; timeLeft=30; running=true;
+  scoreEl.textContent=0; healthEl.textContent=3; timeEl.textContent=30;
   overlay.style.display='none';
   // ramp difficulty: pops get a touch faster over time
   let interval = 720;
@@ -157,15 +182,19 @@ function start(){
   clockTimer = setInterval(()=>{
     timeLeft--; timeEl.textContent = timeLeft;
     if (timeLeft <= 12) popRandom();   // extra aliens near the end
-    if (timeLeft <= 0) end();
+    if (timeLeft <= 0) end('time');
   }, 1000);
 }
 
-function end(){
+function end(reason){
   running=false; clearInterval(popTimer); clearInterval(clockTimer);
-  craters.forEach(c=>{ c.dataset.active='0'; c.querySelector('.alien').classList.remove('up'); });
-  overlay.innerHTML = `<h2>🎉 Time's up!</h2>
-    <p>You popped <strong style="color:#FFD700">${score}</strong> aliens<br>and earned <strong style="color:#FFD700">${score} ⭐ stars!</strong></p>
+  craters.forEach(c=>{ c.dataset.active='0'; c.dataset.kind='empty'; c.querySelector('.alien').classList.remove('up'); });
+  const title = reason === 'pet' ? '💙 Pet rescue!' : "🎉 Time's up!";
+  const detail = reason === 'pet'
+    ? `Your pet lost all health.<br>You still popped <strong style="color:#FFD700">${score}</strong> space baddies.`
+    : `You popped <strong style="color:#FFD700">${score}</strong> space baddies<br>and earned <strong style="color:#FFD700">${score} ⭐ stars!</strong>`;
+  overlay.innerHTML = `<h2>${title}</h2>
+    <p>${detail}</p>
     <button id="play-btn">▶ PLAY AGAIN</button>`;
   overlay.style.display='flex';
   document.getElementById('play-btn').addEventListener('click', start);
@@ -180,9 +209,9 @@ if (window.ArcadeAvatar) {
     title: 'Space Pop Mission',
     primaryLabel: 'Start popping',
     messages: [
-      'Press Start, then tap the aliens when they pop up.',
-      'Each alien you pop earns 1 star.',
-      'You have 30 seconds, so watch all nine craters.'
+      'Press Start, then tap aliens, robots, and saucers when they pop up.',
+      'Do not tap your pet. Each pet hit lowers your health.',
+      'You have 30 seconds to earn stars before time runs out.'
     ]
   });
 }

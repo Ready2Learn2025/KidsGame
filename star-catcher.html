@@ -30,7 +30,7 @@
 <body>
 <a id="home-link" href="index.html">🏠 Home</a>
 <h1>🧺 STAR CATCHER ✨</h1>
-<div id="hud">⭐ Caught: <span id="caught">0</span> &nbsp;|&nbsp; ❤️ <span id="lives">❤️❤️❤️</span></div>
+<div id="hud">⭐ Caught: <span id="caught">0</span> &nbsp;|&nbsp; 🏆 Best: <span id="best">0</span> &nbsp;|&nbsp; Health | <span id="lives">❤️❤️❤️</span></div>
 <canvas id="canvas" width="460" height="560"></canvas>
 <div id="hint">Move your mouse or finger to catch the stars — dodge the asteroids! ☄️</div>
 
@@ -46,14 +46,36 @@ const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
 const caughtEl = document.getElementById('caught');
 const livesEl = document.getElementById('lives');
+const bestEl = document.getElementById('best');
 
 let basketX = W/2, caught = 0, lives = 3, items = [], stars = [], pops = [];
 let spawnTimer = 0, started = false, gameOver = false, flash = 0;
+let best = getBest();
+bestEl.textContent = best;
+
+function getBest(){
+  const b = arcadeLoad();
+  return b.bestStarCatcher || 0;
+}
+function saveBest(value){
+  const b = arcadeLoad();
+  if (value > (b.bestStarCatcher || 0)) {
+    b.bestStarCatcher = value;
+    arcadeSave(b);
+  }
+}
 
 for (let i=0;i<60;i++) stars.push({ x:Math.random()*W, y:Math.random()*H, r:Math.random()*1.5+0.3, t:Math.random()*6 });
 
 function reset(){ caught=0; lives=3; items=[]; pops=[]; spawnTimer=0; gameOver=false; flash=0; updateHUD(); }
 function updateHUD(){ caughtEl.textContent=caught; livesEl.textContent = lives>0 ? '❤️'.repeat(lives) : '💀'; }
+function updateBest(){
+  if (caught > best) {
+    best = caught;
+    bestEl.textContent = best;
+    saveBest(best);
+  }
+}
 
 function spawn(){
   const isStar = Math.random() < 0.8;   // mostly stars, friendly
@@ -109,7 +131,7 @@ function loop(){
   }
   if (gameOver){
     drawBasket();
-    overlay('✨ Nice catching!', `You caught ${caught} stars!`, 'Click or tap to play again');
+    overlay('✨ Nice catching!', `You caught ${caught} stars! Best: ${best}`, 'Click or tap to play again');
     requestAnimationFrame(loop); return;
   }
 
@@ -122,7 +144,7 @@ function loop(){
     it.y += it.vy;
     if (it.y > by-6 && it.y < by+30 && Math.abs(it.x-basketX) < bw/2+6){
       it.dead = true;
-      if (it.type==='star'){ caught++; arcadeEarn(1); pops.push({x:it.x,y:by-6,life:1}); }
+      if (it.type==='star'){ caught++; arcadeEarn(1); updateBest(); pops.push({x:it.x,y:by-6,life:1}); }
       else { lives--; flash=12; if (lives<=0) gameOver=true; }
       updateHUD();
     }

@@ -32,7 +32,9 @@
   .wrap { position: relative; z-index: 1; width: 100%; max-width: 640px; padding: 22px 16px 50px;
           display: flex; flex-direction: column; align-items: center; gap: 14px; }
   h1 { color: #FFD700; font-size: 2rem; letter-spacing: 2px; text-shadow: 0 0 26px rgba(255,200,0,0.5); text-align: center; }
-  #hud { font-size: 1.2rem; color: #FFD700; display: flex; gap: 22px; }
+  #hud { font-size: 1.2rem; color: #FFD700; display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; }
+  .time-low { color: #FF6B6B; animation: pulseTime .55s ease-in-out infinite alternate; }
+  @keyframes pulseTime { from { transform: scale(1); } to { transform: scale(1.08); } }
 
   /* LEVEL PICK */
   #pick { display: flex; flex-direction: column; gap: 14px; width: 100%; max-width: 360px; margin-top: 10px; }
@@ -105,17 +107,22 @@
 
 <div class="wrap">
   <h1>🌌 STAR MATCH 🌟</h1>
-  <div id="hud">⭐ <span id="caught">0</span> &nbsp;|&nbsp; 🃏 Pairs: <span id="pairs">0</span></div>
+  <div id="hud">
+    ⭐ <span id="caught">0</span>
+    <span>🃏 Pairs: <span id="pairs">0</span></span>
+    <span>⏱️ Time: <span id="time">3:00</span></span>
+    <span>🏁 Best: <span id="best-time">--</span></span>
+  </div>
 
   <div id="pick">
     <div class="pick-btn easy" onclick="startGame('easy')">
-      <span class="pi">🌱</span><span>Easy<small>3 pairs — find them all!</small></span>
+      <span class="pi">🌱</span><span>Easy<small>3 pairs — 3 minute timer</small></span>
     </div>
     <div class="pick-btn med" onclick="startGame('med')">
-      <span class="pi">🔥</span><span>Medium<small>6 pairs</small></span>
+      <span class="pi">🔥</span><span>Medium<small>6 pairs — 3 minute timer</small></span>
     </div>
     <div class="pick-btn hard" onclick="startGame('hard')">
-      <span class="pi">💥</span><span>Hard<small>8 pairs</small></span>
+      <span class="pi">💥</span><span>Hard<small>8 pairs — 3 minute timer</small></span>
     </div>
   </div>
 
@@ -142,23 +149,75 @@ function arcadeEarn(n){ const b=arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(
 const SYMBOLS = ['🚀','🪐','🌟','👽','🛸','🌙','☄️','🌍','⭐','🌈'];
 const LEVELS = { easy:3, med:6, hard:8 };
 const COLS   = { easy:3, med:4, hard:4 };
+const MATCH_LIMIT_SECONDS = 180;
 
 const boardEl = document.getElementById('board');
 const pickEl  = document.getElementById('pick');
 const caughtEl= document.getElementById('caught');
 const pairsEl = document.getElementById('pairs');
+const timeEl = document.getElementById('time');
+const bestTimeEl = document.getElementById('best-time');
 
-let currentLevel='easy', totalPairs=0, matched=0, sessionStars=0;
+let currentLevel='easy', totalPairs=0, matched=0, sessionStars=0, timeLeft=MATCH_LIMIT_SECONDS, elapsed=0;
 let first=null, busy=false;
+let timerId = null, gameActive = false;
 
 function syncStars(){ caughtEl.textContent = sessionStars; }
+function formatTime(seconds){
+  const safe = Math.max(0, seconds);
+  const m = Math.floor(safe / 60);
+  const s = safe % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+function getBestTimes(){
+  const b = arcadeLoad();
+  return b.bestStarMatchTimes || {};
+}
+function saveBestTime(level, seconds){
+  const b = arcadeLoad();
+  const best = b.bestStarMatchTimes || {};
+  if (!best[level] || seconds < best[level]) {
+    best[level] = seconds;
+    b.bestStarMatchTimes = best;
+    arcadeSave(b);
+    return true;
+  }
+  return false;
+}
+function updateBestTimeDisplay(){
+  const best = getBestTimes()[currentLevel];
+  bestTimeEl.textContent = best ? formatTime(best) : '--';
+}
+function updateTimer(){
+  timeEl.textContent = formatTime(timeLeft);
+  timeEl.classList.toggle('time-low', timeLeft <= 20 && gameActive);
+}
+function clearMatchTimer(){
+  clearInterval(timerId);
+  timerId = null;
+  timeEl.classList.remove('time-low');
+}
+function startMatchTimer(){
+  clearMatchTimer();
+  timerId = setInterval(()=>{
+    if (!gameActive) return;
+    timeLeft--;
+    elapsed++;
+    updateTimer();
+    if (timeLeft <= 0) timeUp();
+  }, 1000);
+}
 
 function startGame(level){
-  currentLevel=level; matched=0; first=null; busy=false;
+  clearMatchTimer();
+  currentLevel=level; matched=0; first=null; busy=false; sessionStars=0; syncStars();
+  timeLeft=MATCH_LIMIT_SECONDS; elapsed=0; gameActive=true;
   document.getElementById('win').classList.remove('show');
   pickEl.style.display='none'; boardEl.style.display='grid';
   totalPairs = LEVELS[level];
   pairsEl.textContent = '0/'+totalPairs;
+  updateTimer();
+  updateBestTimeDisplay();
   boardEl.style.gridTemplateColumns = `repeat(${COLS[level]}, auto)`;
 
   // build deck
@@ -174,10 +233,11 @@ function startGame(level){
     card.addEventListener('click', ()=>flip(card));
     boardEl.appendChild(card);
   });
+  startMatchTimer();
 }
 
 function flip(card){
-  if (busy || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+  if (!gameActive || busy || card.classList.contains('flipped') || card.classList.contains('matched')) return;
   card.classList.add('flipped'); beep(560,0.07);
   if (!first){ first = card; return; }
 
@@ -198,15 +258,36 @@ function flip(card){
 }
 
 function winRound(){
+  if (!gameActive) return;
+  gameActive = false;
+  clearMatchTimer();
+  const isNewBest = saveBestTime(currentLevel, elapsed);
+  updateBestTimeDisplay();
   arcadeEarn(5); sessionStars += 5; syncStars();   // board-complete bonus
   document.getElementById('win-emoji').textContent = ['🎉','🏆','🌟','🚀'][Math.floor(Math.random()*4)];
-  document.getElementById('win-sub').textContent = `You matched all ${totalPairs} pairs! +5 ⭐ bonus`;
+  document.getElementById('win-title').textContent = 'You did it!';
+  document.getElementById('win-sub').textContent = `You matched all ${totalPairs} pairs in ${formatTime(elapsed)}! ${isNewBest ? 'New best time! ' : ''}+5 ⭐ bonus`;
+  document.getElementById('win').classList.add('show');
+}
+
+function timeUp(){
+  gameActive = false;
+  clearMatchTimer();
+  busy = true;
+  document.getElementById('win-emoji').textContent = '⏱️';
+  document.getElementById('win-title').textContent = "Time's up!";
+  document.getElementById('win-sub').textContent = `Try ${currentLevel === 'med' ? 'Medium' : currentLevel} again and beat the 3 minute timer.`;
   document.getElementById('win').classList.add('show');
 }
 
 function toMenu(){
+  gameActive = false;
+  clearMatchTimer();
   document.getElementById('win').classList.remove('show');
   boardEl.style.display='none'; pickEl.style.display='flex';
+  timeLeft = MATCH_LIMIT_SECONDS;
+  updateTimer();
+  updateBestTimeDisplay();
 }
 
 function shuffle(a){ for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
@@ -251,11 +332,13 @@ if (window.ArcadeAvatar) {
     primaryLabel: 'Start matching',
     messages: [
       'Pick a level, then flip two cards at a time.',
-      'Match pairs with the same space picture.',
+      'Each difficulty has a 3 minute timer.',
       'Finish the board to earn stars and a bonus.'
     ]
   });
 }
+updateTimer();
+updateBestTimeDisplay();
 </script>
 </body>
 </html>

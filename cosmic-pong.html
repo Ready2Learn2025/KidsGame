@@ -87,7 +87,7 @@
   <div id="message"></div>
   <div id="start-screen">
     <h2>🚀 BUILD YOUR ROCKET!</h2>
-    <p>Move your <strong style="color:#FFD700">mouse up &amp; down</strong> to hit the ball back! 🎯<br>
+    <p>Drag your <strong style="color:#FFD700">finger or mouse up &amp; down</strong> to hit the ball back! 🎯<br>
     Score a point → <strong style="color:#72D7F5">add a rocket part!</strong><br>
     Score <strong style="color:#FFD700">10 points</strong> to blast off! 🏆<br>
     Every point earns you a ⭐ star for the arcade!</p>
@@ -407,20 +407,39 @@ function playScore(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(
 
 // ── Input ──
 const area = document.getElementById('game-area');
-area.addEventListener('mousemove', e => {
+function updatePaddleFromClientY(clientY){
   const rect = area.getBoundingClientRect();
-  mouseY = (e.clientY - rect.top) * (H / rect.height);
+  mouseY = (clientY - rect.top) * (H / rect.height);
+}
+function startPong(){
+  if (gameRunning) return;
+  document.getElementById('start-screen').style.display='none';
+  gameRunning = true;
+  resetBall(1);
+}
+area.addEventListener('mousemove', e => {
+  updatePaddleFromClientY(e.clientY);
 });
+area.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  updatePaddleFromClientY(e.clientY);
+  startPong();
+}, { passive:false });
+area.addEventListener('touchstart', e => {
+  e.preventDefault();
+  updatePaddleFromClientY(e.touches[0].clientY);
+  startPong();
+}, { passive:false });
 area.addEventListener('touchmove', e => {
   e.preventDefault();
-  const rect = area.getBoundingClientRect();
-  mouseY = (e.touches[0].clientY - rect.top) * (H / rect.height);
+  updatePaddleFromClientY(e.touches[0].clientY);
 }, { passive:false });
 
-document.getElementById('start-btn').addEventListener('click', () => {
-  document.getElementById('start-screen').style.display='none';
-  gameRunning = true; resetBall(1);
-});
+document.getElementById('start-btn').addEventListener('click', startPong);
+document.getElementById('start-btn').addEventListener('touchstart', e => {
+  e.preventDefault();
+  startPong();
+}, { passive:false });
 
 gameLoop();
 
@@ -431,7 +450,7 @@ if (window.ArcadeAvatar) {
     title: 'Cosmic Pong Mission',
     primaryLabel: 'Start bouncing',
     messages: [
-      'Move up and down to bounce the ball back.',
+      'Drag your finger or mouse up and down to bounce the ball back.',
       'Score points to build your rocket piece by piece.',
       'Complete the rocket to earn a liftoff bonus.'
     ]

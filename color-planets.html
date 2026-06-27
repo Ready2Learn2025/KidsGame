@@ -21,6 +21,29 @@
   }
   .star-bg { position: absolute; background: #fff; border-radius: 50%; animation: tw ease-in-out infinite alternate; }
   @keyframes tw { from { opacity: .2; transform: scale(.8);} to { opacity: 1; transform: scale(1.3);} }
+  .shooting-star {
+    position: absolute; width: 90px; height: 2px; border-radius: 999px;
+    background: linear-gradient(90deg, rgba(255,255,255,0), #fff, rgba(255,215,0,0.15));
+    opacity: 0; transform: rotate(-24deg); animation: shoot linear infinite;
+  }
+  @keyframes shoot {
+    0%, 78% { opacity: 0; transform: translate3d(-20vw, 0, 0) rotate(-24deg); }
+    82% { opacity: 0.9; }
+    100% { opacity: 0; transform: translate3d(125vw, -48vh, 0) rotate(-24deg); }
+  }
+  .rocket-bg {
+    position: absolute; opacity: 0; animation: rocketPass linear infinite; filter: drop-shadow(0 0 10px rgba(255,215,0,0.35));
+  }
+  @keyframes rocketPass {
+    0%, 68% { opacity: 0; transform: translate3d(-80px, 0, 0) rotate(-34deg); }
+    72%, 92% { opacity: 0.72; }
+    100% { opacity: 0; transform: translate3d(115vw, -54vh, 0) rotate(-34deg); }
+  }
+  .planet-bg {
+    position: absolute; border-radius: 50%; opacity: 0.42; box-shadow: inset -10px -8px 0 rgba(0,0,0,0.28);
+    animation: drift ease-in-out infinite alternate;
+  }
+  @keyframes drift { from { transform: translateY(0) rotate(0deg); } to { transform: translateY(-20px) rotate(7deg); } }
 
   #home-link {
     position: fixed; top: 16px; left: 16px; z-index: 50;
@@ -76,7 +99,7 @@
 
 <div class="top">
   <h1>🪐 COLOR PLANETS 🌈</h1>
-  <div id="hud">⭐ Sorted: <span id="sorted">0</span></div>
+  <div id="hud">⭐ Sorted: <span id="sorted">0</span> &nbsp;|&nbsp; 🏆 Best: <span id="best">0</span></div>
 </div>
 
 <div id="field">
@@ -101,10 +124,24 @@ const PALETTE = [
 const field   = document.getElementById('field');
 const binsEl   = document.getElementById('bins');
 const sortedEl = document.getElementById('sorted');
+const bestEl = document.getElementById('best');
 
 const SIZE = 62, FLOOR_OFFSET = 110; // keep planets above the bins
-let planets = [], sorted = 0, selected = null;
+let planets = [], sorted = 0, selected = null, best = getBest();
 let drag = null; // {planet, offX, offY, moved}
+bestEl.textContent = best;
+
+function getBest(){
+  const b = arcadeLoad();
+  return b.bestColorPlanets || 0;
+}
+function saveBest(value){
+  const b = arcadeLoad();
+  if (value > (b.bestColorPlanets || 0)) {
+    b.bestColorPlanets = value;
+    arcadeSave(b);
+  }
+}
 
 function lighten(hex, amt){
   const n=parseInt(hex.slice(1),16);
@@ -201,6 +238,7 @@ function resolve(obj, binId){
   if (obj.color === binId){
     obj.removed = true;
     sorted++; sortedEl.textContent = sorted; arcadeEarn(1);
+    if (sorted > best) { best = sorted; bestEl.textContent = best; saveBest(best); }
     floatStar(obj);
     obj.el.classList.add('gone');
     chime();
@@ -270,6 +308,25 @@ function buzz(){ tone(150,0.18,'sawtooth',0.12); }
     const sz=Math.random()*2.4+0.4;
     s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation-duration:${1.5+Math.random()*3}s;animation-delay:${Math.random()*5}s;`;
     bg.appendChild(s); }
+  [
+    {c:'#AF52DE',w:72,h:72,l:'8%',t:'18%',d:'8s'},
+    {c:'#32ADE6',w:54,h:54,l:'86%',t:'16%',d:'7s'},
+    {c:'#FFD700',w:44,h:44,l:'78%',t:'72%',d:'9s'},
+  ].forEach(p=>{
+    const planet=document.createElement('div'); planet.className='planet-bg';
+    planet.style.cssText=`width:${p.w}px;height:${p.h}px;left:${p.l};top:${p.t};background:${p.c};animation-duration:${p.d};`;
+    bg.appendChild(planet);
+  });
+  for (let i=0;i<6;i++){
+    const s=document.createElement('div'); s.className='shooting-star';
+    s.style.cssText=`left:-10vw;top:${8+Math.random()*78}%;animation-duration:${9+Math.random()*8}s;animation-delay:${i*2.7+Math.random()*3}s;`;
+    bg.appendChild(s);
+  }
+  ['🚀','🛸'].forEach((icon,i)=>{
+    const r=document.createElement('div'); r.className='rocket-bg'; r.textContent=icon;
+    r.style.cssText=`left:-80px;bottom:${22+i*38}%;font-size:${1.4+i*0.35}rem;animation-duration:${18+i*7}s;animation-delay:${4+i*9}s;`;
+    bg.appendChild(r);
+  });
 })();
 </script>
 </body>

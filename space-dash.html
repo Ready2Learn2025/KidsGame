@@ -24,6 +24,7 @@
     #hud { display: flex; gap: 1.5rem; margin-top: 12px; font-size: 17px; color: #aaa; flex-wrap: wrap; justify-content: center; }
     #hud span { font-weight: bold; color: #fff; }
     #coins-hud { color: #FAC775; }
+    #fuel-hud { color: #72D7F5; }
     #hint { margin-top: 8px; font-size: 13px; color: #555; text-align: center; }
     #home-link {
       position: fixed; top: 16px; left: 16px;
@@ -43,6 +44,7 @@
     &nbsp;|&nbsp; 🏆 Best: <span id="best-val">0</span>
     &nbsp;|&nbsp; ❤️ Lives: <span id="lives-val">❤️❤️❤️</span>
     &nbsp;|&nbsp; <span id="coins-hud">🪙 Coins: <span id="coins-val">0</span></span>
+    &nbsp;|&nbsp; <span id="fuel-hud">⛽ Fuel: <span id="fuel-val">0</span></span>
   </div>
   <div id="hint">← → arrow keys &nbsp;•&nbsp; mouse to steer &nbsp;•&nbsp; Space or click to start</div>
 
@@ -59,6 +61,7 @@
     const bestEl   = document.getElementById('best-val');
     const livesEl  = document.getElementById('lives-val');
     const coinsEl  = document.getElementById('coins-val');
+    const fuelEl   = document.getElementById('fuel-val');
     const W = canvas.width, H = canvas.height;
 
     const LANE_COUNT = 5;
@@ -75,8 +78,8 @@
       { color: '#888780', ring: '#D3D1C7' },
     ];
 
-    let ship, planets, coins, stars, score, totalCoins, lives, best, bestCoins;
-    let speed, planetTimer, coinTimer, gameOver, started, flashTimer, shieldTimer;
+    let ship, planets, coins, fuels, stars, score, totalCoins, totalFuel, lives, best, bestCoins;
+    let speed, planetTimer, coinTimer, fuelTimer, fuelBoostTimer, gameOver, started, flashTimer, shieldTimer;
     let mouseX = null;
     best = 0; bestCoins = 0;
 
@@ -96,12 +99,16 @@
       ship = { lane: 2, x: LANE_W * 2 + LANE_W / 2, targetX: LANE_W * 2 + LANE_W / 2, y: H - 80 };
       planets = [];
       coins = [];
+      fuels = [];
       score = 0;
       totalCoins = 0;
+      totalFuel = 0;
       lives = 3;
       speed = 1.8;           // much slower start
-      planetTimer = 60;      // longer gap between planets
+      planetTimer = 90;      // fewer planets on screen
       coinTimer = 30;
+      fuelTimer = 220;
+      fuelBoostTimer = 0;
       gameOver = false;
       flashTimer = 0;
       shieldTimer = 0;
@@ -114,16 +121,18 @@
       livesEl.textContent = lives > 0 ? '❤️'.repeat(lives) : '💀';
       bestEl.textContent  = best;
       coinsEl.textContent = totalCoins;
+      fuelEl.textContent = totalFuel;
     }
 
     function spawnPlanet() {
+      if (planets.length >= 3) return;
       // Never spawn two planets in the same lane back-to-back (easier for kids)
       const lastLane = planets.length ? planets[planets.length - 1].lane : -1;
       let lane;
       do { lane = Math.floor(Math.random() * LANE_COUNT); } while (lane === lastLane && LANE_COUNT > 1);
 
       const pd = PLANET_DATA[Math.floor(Math.random() * PLANET_DATA.length)];
-      const r = 26 + Math.random() * 18;   // smaller planets
+      const r = 22 + Math.random() * 15;   // smaller planets
       planets.push({
         lane, x: lane * LANE_W + LANE_W / 2, y: -r - 10, r,
         color: pd.color, ringColor: pd.ring,
@@ -135,6 +144,11 @@
     function spawnCoin() {
       const lane = Math.floor(Math.random() * LANE_COUNT);
       coins.push({ x: lane * LANE_W + LANE_W / 2, y: -20, r: 12, collected: false, pop: 0 });
+    }
+
+    function spawnFuel() {
+      const lane = Math.floor(Math.random() * LANE_COUNT);
+      fuels.push({ x: lane * LANE_W + LANE_W / 2, y: -24, r: 15, collected: false, pop: 0 });
     }
 
     function lighten(hex) {
@@ -157,9 +171,9 @@
       }
     }
 
-    function drawStars(dt) {
+    function drawStars(dt, runSpeed) {
       stars.forEach(s => {
-        s.y += s.speed * speed * 0.5 * dt;
+        s.y += s.speed * runSpeed * 0.5 * dt;
         s.twinkle += 0.05 * dt;
         if (s.y > H) { s.y = 0; s.x = Math.random() * W; }
         const alpha = 0.35 + 0.4 * Math.abs(Math.sin(s.twinkle));
@@ -236,6 +250,36 @@
       ctx.textBaseline = 'middle';
       ctx.fillText('$', 0, 1);
 
+      ctx.restore();
+    }
+
+    function drawFuel(f) {
+      if (f.collected && f.pop <= 0) return;
+      ctx.save();
+      ctx.translate(f.x, f.y);
+      const scale = f.collected ? 1 + f.pop * 0.7 : 1;
+      ctx.globalAlpha = f.collected ? f.pop : 1;
+      ctx.scale(scale, scale);
+      ctx.shadowColor = '#72D7F5';
+      ctx.shadowBlur = 14;
+      ctx.fillStyle = '#72D7F5';
+      ctx.beginPath();
+      ctx.roundRect(-11, -15, 22, 30, 5);
+      ctx.fill();
+      ctx.fillStyle = '#0C2B4A';
+      ctx.fillRect(-6, -10, 12, 8);
+      ctx.strokeStyle = '#FFD700';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(8, -7);
+      ctx.lineTo(16, -1);
+      ctx.lineTo(16, 10);
+      ctx.stroke();
+      ctx.fillStyle = '#FFD700';
+      ctx.font = 'bold 14px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('+', 0, 6);
       ctx.restore();
     }
 
@@ -325,14 +369,19 @@
       const dx = ship.x - c.x, dy = ship.y - c.y;
       return Math.sqrt(dx*dx + dy*dy) < c.r + 18;
     }
+    function checkFuelCollect(f) {
+      const dx = ship.x - f.x, dy = ship.y - f.y;
+      return Math.sqrt(dx*dx + dy*dy) < f.r + 20;
+    }
 
     let last = 0;
     function loop(ts) {
       const dt = Math.min((ts - last) / 16.67, 3);
       last = ts;
 
+      const runSpeed = speed * (fuelBoostTimer > 0 ? 1.55 : 1);
       drawBg();
-      drawStars(dt);
+      drawStars(dt, runSpeed);
 
       if (!started) {
         drawShip(ship.x, ship.y);
@@ -344,8 +393,9 @@
       if (gameOver) {
         planets.forEach(drawPlanet);
         coins.forEach(drawCoin);
+        fuels.forEach(drawFuel);
         drawShip(ship.x, ship.y);
-        drawOverlay('💥 Boom!', `Score: ${score}  •  Coins: ${totalCoins}`, 'Click or Space to play again!');
+        drawOverlay('💥 Boom!', `Score: ${Math.floor(score)}  •  Coins: ${totalCoins}  •  Fuel: ${totalFuel}`, 'Click or Space to play again!');
         requestAnimationFrame(loop);
         return;
       }
@@ -361,7 +411,7 @@
       if (planetTimer <= 0) {
         spawnPlanet();
         // Gap shrinks very slowly, stays long for ages
-        planetTimer = Math.max(50, 70 - score * 0.08);
+        planetTimer = Math.max(74, 100 - score * 0.06);
       }
 
       // Spawn coins frequently so kids stay engaged
@@ -370,15 +420,26 @@
         spawnCoin();
         coinTimer = 22 + Math.random() * 18;
       }
+      fuelTimer -= dt;
+      if (fuelTimer <= 0) {
+        spawnFuel();
+        fuelTimer = 230 + Math.random() * 160;
+      }
 
-      planets.forEach(p => { p.y += speed * dt; p.rot += 0.004 * dt; });
+      planets.forEach(p => { p.y += runSpeed * dt; p.rot += 0.004 * dt; });
       planets = planets.filter(p => p.y < H + p.r + 20);
 
       coins.forEach(c => {
-        if (!c.collected) c.y += speed * dt;
+        if (!c.collected) c.y += runSpeed * dt;
         else c.pop -= 0.07 * dt;
       });
       coins = coins.filter(c => c.y < H + 30 && (!c.collected || c.pop > 0));
+
+      fuels.forEach(f => {
+        if (!f.collected) f.y += runSpeed * dt;
+        else f.pop -= 0.07 * dt;
+      });
+      fuels = fuels.filter(f => f.y < H + 34 && (!f.collected || f.pop > 0));
 
       // Planet collision
       let hit = false;
@@ -393,7 +454,7 @@
         });
         if (lives <= 0) {
           gameOver = true;
-          if (score > best) best = score;
+          if (Math.floor(score) > best) best = Math.floor(score);
           if (totalCoins > bestCoins) bestCoins = totalCoins;
         }
         updateHUD();
@@ -410,12 +471,24 @@
           updateHUD();
         }
       });
+      fuels.forEach(f => {
+        if (!f.collected && checkFuelCollect(f)) {
+          f.collected = true;
+          f.pop = 1;
+          totalFuel++;
+          score += 50;
+          fuelBoostTimer = 220;
+          arcadeEarn(2);
+          updateHUD();
+        }
+      });
 
       if (shieldTimer > 0) shieldTimer -= dt;
       if (flashTimer  > 0) flashTimer  -= dt;
+      if (fuelBoostTimer > 0) fuelBoostTimer -= dt;
 
       // Score increments by whole numbers (1 per ~half second at start)
-      score += speed * 0.025 * dt;
+      score += runSpeed * 0.025 * dt;
       scoreEl.textContent = Math.floor(score);
 
       // Very gentle speed increase — still feels fast enough to be fun
@@ -427,6 +500,7 @@
       }
 
       coins.forEach(drawCoin);
+      fuels.forEach(drawFuel);
       planets.forEach(drawPlanet);
       drawShip(ship.x, ship.y);
 
@@ -502,7 +576,7 @@
         messages: [
           'Click, tap, or press Space to launch the ship.',
           'Steer left and right to dodge planets.',
-          'Collect coins to earn stars for the arcade.'
+          'Collect coins and fuel. Fuel gives bonus points and a quick speed boost.'
         ]
       });
     }
