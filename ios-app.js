@@ -38,9 +38,43 @@
       '*{-webkit-tap-highlight-color:rgba(0,0,0,0);}' +
       'body{-webkit-touch-callout:none;overscroll-behavior:none;}' +
       'a,button{touch-action:manipulation;}' +
+      'body.arcade-has-home-bar{padding-top:calc(62px + env(safe-area-inset-top));}' +
+      '#arcade-home-bar{position:fixed;top:0;left:0;right:0;z-index:1200;' +
+        'display:flex;align-items:center;justify-content:center;gap:10px;' +
+        'min-height:54px;padding:calc(9px + env(safe-area-inset-top)) 16px 9px;' +
+        'background:rgba(7,7,24,0.86);backdrop-filter:blur(14px);' +
+        '-webkit-backdrop-filter:blur(14px);border-bottom:1px solid rgba(255,215,0,0.36);' +
+        'box-shadow:0 8px 28px rgba(0,0,0,0.28);color:#FFD700;text-decoration:none;' +
+        'font-family:inherit;font-size:1rem;text-shadow:0 0 12px rgba(255,200,0,0.28);}' +
+      '#arcade-home-bar:active{transform:translateY(1px);}' +
+      '#home-link.arcade-hidden-home-link,.back-btn.arcade-hidden-home-link{display:none !important;}' +
       '#home-link{top:calc(16px + env(safe-area-inset-top)) !important;' +
                  'left:calc(16px + env(safe-area-inset-left)) !important;}';
     head.appendChild(s);
+  }
+
+  function isHomePage(){
+    var file = location.pathname.split('/').pop();
+    return !file || file === 'index.html';
+  }
+
+  function installHomeBar(){
+    if (isHomePage() || !document.body || document.getElementById('arcade-home-bar')) return;
+    Array.prototype.forEach.call(document.querySelectorAll('#home-link,.back-btn'), function(el){
+      el.classList.add('arcade-hidden-home-link');
+    });
+    var a = document.createElement('a');
+    a.id = 'arcade-home-bar';
+    a.href = 'index.html';
+    a.innerHTML = '<span>🚀</span><span>Space Arcade</span>';
+    document.body.classList.add('arcade-has-home-bar');
+    document.body.appendChild(a);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', installHomeBar);
+  } else {
+    installHomeBar();
   }
 
   // Block pinch-zoom (belt-and-braces alongside user-scalable=no)

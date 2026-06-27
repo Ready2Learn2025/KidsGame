@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <script src="ios-app.js"></script>
+<script src="avatar.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 <title>Mason's Space Arcade</title>
 <style>
@@ -58,6 +59,23 @@ header { text-align: center; margin-bottom: 8px; }
 .wallet-num { font-size: 2.4rem; color: #FFD700; text-shadow: 0 0 16px rgba(255,200,0,0.5); line-height: 1; }
 .wallet-label { font-size: 0.8rem; color: rgba(255,255,255,0.7); margin-top: 5px; letter-spacing: 1px; }
 .wallet-div { width: 2px; align-self: stretch; background: rgba(255,255,255,0.15); }
+
+.avatar-home {
+  margin: 18px auto 12px;
+  max-width: 760px;
+  padding: 18px;
+  background: rgba(255,255,255,0.075);
+  border: 1px solid rgba(255,215,0,0.32);
+  border-radius: 24px;
+  box-shadow: 0 0 30px rgba(255,200,0,0.1);
+}
+.avatar-home-title {
+  text-align: center;
+  color: #FFD700;
+  font-size: 1.55rem;
+  margin-bottom: 12px;
+  text-shadow: 0 0 16px rgba(255,200,0,0.32);
+}
 
 .hint { text-align: center; font-size: 0.95rem; color: rgba(255,255,255,0.6); margin: 8px 0 22px; }
 
@@ -141,7 +159,12 @@ footer { text-align: center; margin-top: 34px; }
       <div class="wallet-label">🏆 STARS EARNED</div>
     </div>
   </div>
-  <div class="hint">Earn stars in any game — they unlock new games and buy dress-up gear in Math Stars!</div>
+  <section class="avatar-home" aria-label="Avatar shop">
+    <div class="avatar-home-title">🧑‍🚀 Avatar Shop</div>
+    <div id="home-avatar-shop"></div>
+  </section>
+
+  <div class="hint">Earn stars in any game — they unlock new games and buy avatar gear!</div>
 
   <div class="grid" id="grid"></div>
 
@@ -252,6 +275,7 @@ function resetAll(){
   localStorage.removeItem('mathStars');
   const b = {}; b.migrated = true; arcadeSave(b);
   render();
+  if (window.ArcadeAvatar) ArcadeAvatar.refreshShop('home-avatar-shop');
   toast('Progress reset. Fresh start! 🌟');
 }
 
@@ -284,9 +308,26 @@ function resetAll(){
 })();
 
 render();
+if (window.ArcadeAvatar) {
+  ArcadeAvatar.mountShop({
+    rootId: 'home-avatar-shop',
+    onToast: toast,
+    onChange: render,
+    charSize: 135,
+    petSize: 78
+  });
+}
 // Refresh when returning to the tab (stars earned in a game)
-document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
-window.addEventListener('focus', render);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    render();
+    if (window.ArcadeAvatar) ArcadeAvatar.refreshShop('home-avatar-shop');
+  }
+});
+window.addEventListener('focus', () => {
+  render();
+  if (window.ArcadeAvatar) ArcadeAvatar.refreshShop('home-avatar-shop');
+});
 </script>
 </body>
 </html>

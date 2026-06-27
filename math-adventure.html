@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <script src="ios-app.js"></script>
+<script src="avatar.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 <title>Math Stars Adventure!</title>
 <style>
@@ -214,8 +215,21 @@ body {
 .ans-btn.correct { background: #30C840 !important; transform: scale(1.06); }
 .ans-btn.wrong   { background: #555 !important; opacity: 0.5; }
 .ans-btn.reveal  { background: #30C840 !important; }
+.timer-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  color: #FFD700;
+  font-size: 1.1rem;
+  text-shadow: 0 0 12px rgba(255,200,0,0.4);
+}
+.timer-row[hidden] { display: none; }
+.timer-row.danger { color: #FF3B30; animation: timerPulse 0.45s ease-in-out infinite alternate; }
+@keyframes timerPulse { from { transform: scale(1); } to { transform: scale(1.06); } }
 .hint-track { width: 100%; height: 8px; background: rgba(255,255,255,0.14); border-radius: 4px; overflow: hidden; }
 .hint-fill  { height: 100%; background: #FFD700; border-radius: 4px; transition: width 1s linear; }
+.hint-fill.timed { background: linear-gradient(90deg, #30C840, #FFD700, #FF3B30); }
 
 /* SHOP */
 #shop-screen { gap: 16px; }
@@ -321,6 +335,19 @@ body {
   0%   { transform: scale(0) rotate(0deg); opacity: 1; }
   100% { transform: scale(2.2) rotate(400deg) translateY(-90px); opacity: 0; }
 }
+.rocket-boom {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1001;
+  font-size: 4.4rem;
+  animation: rocketBoom 1.1s ease-out forwards;
+}
+@keyframes rocketBoom {
+  0% { transform: translate(-50%,-50%) scale(0.45) rotate(-12deg); opacity: 0; }
+  18% { opacity: 1; }
+  52% { transform: translate(-50%,-50%) scale(1.22) rotate(7deg); opacity: 1; }
+  100% { transform: translate(-50%,-80%) scale(1.55) rotate(18deg); opacity: 0; }
+}
 @keyframes charBounce {
   0%,100% { transform: translateY(0) rotate(0deg); }
   30%     { transform: translateY(-18px) rotate(-6deg); }
@@ -355,8 +382,6 @@ body {
   <div id="title-char"></div>
   <div class="title-sub">Blast off and learn math! 🚀</div>
   <button class="btn btn-xl btn-yellow" onclick="showDiff()">▶ PLAY!</button>
-  <button class="btn btn-lg btn-dark" onclick="goShop('title')">🛒 Dress-Up Shop</button>
-  <a class="btn btn-lg btn-dark" href="index.html" style="text-decoration:none;display:inline-block;">🏠 Arcade Home</a>
   <div style="font-size:1.3rem;color:#FFD700;margin-top:4px;">⭐ Stars: <span id="score-title">0</span></div>
 </div>
 
@@ -377,7 +402,7 @@ body {
       <div>
         <div class="diff-name">Hard</div>
         <div class="diff-desc">Addition + Division</div>
-        <div class="diff-pts">⭐ 10 stars per question</div>
+        <div class="diff-pts">⭐ 10 stars • ⏱ 15 seconds</div>
       </div>
     </div>
     <div class="diff-card harder" onclick="startGame('harder')">
@@ -385,7 +410,7 @@ body {
       <div>
         <div class="diff-name">Harder</div>
         <div class="diff-desc">Addition + Multiplication</div>
-        <div class="diff-pts">⭐ 20 stars per question</div>
+        <div class="diff-pts">⭐ 20 stars • ⏱ 7 seconds</div>
       </div>
     </div>
   </div>
@@ -398,7 +423,6 @@ body {
     <div class="score-big">⭐ <span id="score-game">0</span></div>
     <span class="diff-badge" id="diff-badge">Easy</span>
     <div class="q-label">Q <span id="q-num">1</span></div>
-    <button class="btn btn-md btn-yellow" onclick="goShop('game')">🛒 Shop</button>
   </div>
   <div class="game-area">
     <div class="char-panel">
@@ -411,6 +435,7 @@ body {
     <div class="q-panel">
       <div class="q-box" id="q-box">?</div>
       <div class="answers" id="answers"></div>
+      <div class="timer-row" id="timer-row" hidden>⏱ <span id="timer-val">0</span>s</div>
       <div class="hint-track"><div class="hint-fill" id="hint-fill" style="width:100%"></div></div>
     </div>
   </div>
@@ -482,10 +507,11 @@ body {
 // ── STATE ──
 const G = {
   score:0, qNum:0, current:null, answered:false,
-  hintTick:null, shopFrom:'title', difficulty:'easy',
+  hintTick:null, timerTick:null, timeLeft:0, shopFrom:'title', difficulty:'easy',
   char:{ color:'red', hat:'none', outfit:'none', pet:'none' }
 };
 const PTS = { easy:5, hard:10, harder:20 };
+const TIME_LIMITS = { hard:15, harder:7 };
 
 // ── CATALOG ──
 const CATALOG = {
@@ -718,6 +744,22 @@ function drawPet(id, mood='happy', size=80){
   el.innerHTML=svgs[pet]||'';
 }
 
+const legacyDrawChar = drawChar;
+const legacyDrawPet = drawPet;
+function syncAvatar(){
+  if (window.ArcadeAvatar) G.char = {...G.char, ...ArcadeAvatar.getState().char};
+}
+drawChar = function(id, mood='happy', size=148){
+  syncAvatar();
+  if (window.ArcadeAvatar) { ArcadeAvatar.drawChar(id, mood, size, G.char); return; }
+  legacyDrawChar(id, mood, size);
+};
+drawPet = function(id, mood='happy', size=80){
+  syncAvatar();
+  if (window.ArcadeAvatar) { ArcadeAvatar.drawPet(id, mood, size, G.char); return; }
+  legacyDrawPet(id, mood, size);
+};
+
 // ── MESSAGES ──
 const MSGS={
   start:  ["Let's go! You've got this! 💪","Math time! You're a star! ⭐","Ready? Blast off! 🚀","I know you can do it! 🌟"],
@@ -782,12 +824,13 @@ function startGame(diff){
   show('game-screen');
   const badge=document.getElementById('diff-badge');
   badge.className='diff-badge badge-'+diff;
-  badge.textContent={easy:'Easy ⭐5',hard:'Hard ⭐10',harder:'Harder ⭐20'}[diff];
+  badge.textContent={easy:'Easy ⭐5',hard:'Hard ⭐10 • 15s',harder:'Harder ⭐20 • 7s'}[diff];
   updateScores(); nextQuestion();
 }
 
 function nextQuestion(){
   document.getElementById('overlay').classList.remove('show');
+  clearQuestionTimers();
   G.answered=false; G.qNum++;
   G.current=genQ(); const q=G.current;
   const qbox=document.getElementById('q-box');
@@ -802,10 +845,39 @@ function nextQuestion(){
     btn.className='ans-btn'; btn.textContent=c;
     btn.onclick=()=>checkAnswer(c,btn); grid.appendChild(btn);
   });
+  startQuestionClock();
+}
+
+function clearQuestionTimers(){
   clearInterval(G.hintTick);
-  let secs=0; const LIMIT=14;
+  clearInterval(G.timerTick);
+  G.hintTick=null; G.timerTick=null;
+}
+
+function startQuestionClock(){
   const fill=document.getElementById('hint-fill');
-  fill.style.transition='none'; fill.style.width='100%';
+  const timerRow=document.getElementById('timer-row');
+  const limit=TIME_LIMITS[G.difficulty] || 0;
+  fill.style.transition='none';
+  fill.style.width='100%';
+  fill.classList.toggle('timed', !!limit);
+  timerRow.hidden=!limit;
+  timerRow.classList.remove('danger');
+
+  if(limit){
+    G.timeLeft=limit;
+    updateTimerUI();
+    requestAnimationFrame(()=>{ fill.style.transition=`width ${limit}s linear`; fill.style.width='0%'; });
+    G.timerTick=setInterval(()=>{
+      if(G.answered){clearQuestionTimers();return;}
+      G.timeLeft--;
+      updateTimerUI();
+      if(G.timeLeft<=0) timeFail();
+    },1000);
+    return;
+  }
+
+  let secs=0; const LIMIT=14;
   G.hintTick=setInterval(()=>{
     if(G.answered){clearInterval(G.hintTick);return;}
     secs++;
@@ -823,9 +895,16 @@ function nextQuestion(){
   },1000);
 }
 
+function updateTimerUI(){
+  const timerVal=document.getElementById('timer-val');
+  const timerRow=document.getElementById('timer-row');
+  timerVal.textContent=Math.max(0,G.timeLeft);
+  timerRow.classList.toggle('danger', G.timeLeft<=3);
+}
+
 function checkAnswer(choice,btn){
   if(G.answered)return;
-  G.answered=true; clearInterval(G.hintTick);
+  G.answered=true; clearQuestionTimers();
   const pts=PTS[G.difficulty];
   if(choice===G.current.ans){
     btn.classList.add('correct');
@@ -835,11 +914,31 @@ function checkAnswer(choice,btn){
     anim('game-char','bounce'); burst(btn); setTimeout(showCelebration,550);
   } else {
     btn.classList.add('wrong');
-    document.querySelectorAll('.ans-btn').forEach(b=>{if(+b.textContent===G.current.ans)b.classList.add('reveal');});
-    document.getElementById('bubble').textContent=pick(MSGS.wrong);
+    revealCorrectAnswer();
+    if (TIME_LIMITS[G.difficulty]) {
+      document.getElementById('bubble').textContent='Rocket exploded! Try the next one! 🚀';
+      rocketBoom(btn);
+    } else {
+      document.getElementById('bubble').textContent=pick(MSGS.wrong);
+    }
     drawChar('game-char','sad'); drawPet('game-pet','sad');
     anim('game-char','shake'); setTimeout(nextQuestion,1700);
   }
+}
+
+function revealCorrectAnswer(){
+  document.querySelectorAll('.ans-btn').forEach(b=>{if(+b.textContent===G.current.ans)b.classList.add('reveal');});
+}
+
+function timeFail(){
+  if(G.answered)return;
+  G.answered=true; clearQuestionTimers();
+  revealCorrectAnswer();
+  document.getElementById('bubble').textContent='Time is up! Rocket exploded! 🚀';
+  drawChar('game-char','sad'); drawPet('game-pet','sad');
+  anim('game-char','shake');
+  rocketBoom(document.getElementById('q-box'));
+  setTimeout(nextQuestion,1800);
 }
 
 function showCelebration(){
@@ -866,6 +965,14 @@ function burst(near){
     div.style.animationDelay=(i*0.09)+'s';
     document.body.appendChild(div); setTimeout(()=>div.remove(),1300);
   });
+}
+
+function rocketBoom(near){
+  const r=near.getBoundingClientRect();
+  const div=document.createElement('div'); div.className='rocket-boom'; div.textContent='🚀💥';
+  div.style.left=(r.left+r.width/2)+'px';
+  div.style.top=(r.top+r.height/2)+'px';
+  document.body.appendChild(div); setTimeout(()=>div.remove(),1200);
 }
 
 // ── SHOP ──
@@ -941,24 +1048,14 @@ function bankEarned(n){ const b=arcadeLoad(); b.earned=(b.earned||0)+n; arcadeSa
 
 // ── SAVE/LOAD ──
 function saveProgress(){
-  const owned={};
-  ['colors','hats','outfits','pets'].forEach(tab=>{owned[tab]=CATALOG[tab].filter(i=>i.owned).map(i=>i.id);});
   const b=arcadeLoad();
   b.coins=G.score;          // stars to spend
-  b.mathChar=G.char;
-  b.mathOwned=owned;
   arcadeSave(b);
 }
 function loadProgress(){
   const b=arcadeLoad();
   G.score=b.coins||0;
-  if(b.mathChar) G.char={...G.char,...b.mathChar};
-  if(b.mathOwned){
-    ['colors','hats','outfits','pets'].forEach(tab=>{
-      const ids=b.mathOwned[tab]||[];
-      CATALOG[tab].forEach(item=>{if(ids.includes(item.id))item.owned=true;});
-    });
-  }
+  syncAvatar();
 }
 
 // ── INIT ──
