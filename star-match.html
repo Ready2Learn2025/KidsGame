@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <script src="ios-app.js"></script>
+<script src="avatar.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 <title>Star Match!</title>
 <style>
@@ -241,6 +242,20 @@ function chime(){ [523,659,784].forEach((f,i)=>setTimeout(()=>tone(f,0.14,'sine'
     s.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation-duration:${1.5+Math.random()*3}s;animation-delay:${Math.random()*5}s;`;
     bg.appendChild(s); }
 })();
+
+if (window.ArcadeAvatar) {
+  ArcadeAvatar.mountGuide({
+    rootId: 'match-avatar-guide',
+    gameId: 'star-match',
+    title: 'Star Match Mission',
+    primaryLabel: 'Start matching',
+    messages: [
+      'Pick a level, then flip two cards at a time.',
+      'Match pairs with the same space picture.',
+      'Finish the board to earn stars and a bonus.'
+    ]
+  });
+}
 </script>
 </body>
 </html>

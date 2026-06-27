@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <script src="ios-app.js"></script>
+<script src="avatar.js"></script>
 <title>Star Catcher!</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -167,6 +168,20 @@ document.addEventListener('keydown', e=>{
 });
 
 reset(); loop();
+
+if (window.ArcadeAvatar) {
+  ArcadeAvatar.mountGuide({
+    rootId: 'catch-avatar-guide',
+    gameId: 'star-catcher',
+    title: 'Star Catcher Mission',
+    primaryLabel: 'Start catching',
+    messages: [
+      'Move the basket with your mouse or finger.',
+      'Catch the falling stars to earn arcade stars.',
+      'Dodge the asteroids, because they take away hearts.'
+    ]
+  });
+}
 </script>
 </body>
 </html>

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <script src="ios-app.js"></script>
+<script src="avatar.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 <title>Color Planets!</title>
 <style>
@@ -234,6 +235,20 @@ function loop(){
 let spawnTimer = setInterval(spawn, 1500);
 spawn(); spawn();
 loop();
+
+if (window.ArcadeAvatar) {
+  ArcadeAvatar.mountGuide({
+    rootId: 'color-avatar-guide',
+    gameId: 'color-planets',
+    title: 'Color Planets Mission',
+    primaryLabel: 'Start sorting',
+    messages: [
+      'Drag a planet to the matching color port.',
+      'You can also tap a planet, then tap the right port.',
+      'Each correct color match earns 1 star.'
+    ]
+  });
+}
 
 // sounds
 let actx;

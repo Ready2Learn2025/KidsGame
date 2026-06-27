@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <script src="ios-app.js"></script>
+<script src="avatar.js"></script>
 <title>Cosmic Pong!</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -422,6 +423,20 @@ document.getElementById('start-btn').addEventListener('click', () => {
 });
 
 gameLoop();
+
+if (window.ArcadeAvatar) {
+  ArcadeAvatar.mountGuide({
+    rootId: 'pong-avatar-guide',
+    gameId: 'cosmic-pong',
+    title: 'Cosmic Pong Mission',
+    primaryLabel: 'Start bouncing',
+    messages: [
+      'Move up and down to bounce the ball back.',
+      'Score points to build your rocket piece by piece.',
+      'Complete the rocket to earn a liftoff bonus.'
+    ]
+  });
+}
 </script>
 </body>
 </html>

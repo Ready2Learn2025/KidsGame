@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <script src="ios-app.js"></script>
+<script src="avatar.js"></script>
 <title>Space Pop!</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -171,6 +172,20 @@ function end(){
 }
 
 document.getElementById('play-btn').addEventListener('click', start);
+
+if (window.ArcadeAvatar) {
+  ArcadeAvatar.mountGuide({
+    rootId: 'pop-avatar-guide',
+    gameId: 'space-pop',
+    title: 'Space Pop Mission',
+    primaryLabel: 'Start popping',
+    messages: [
+      'Press Start, then tap the aliens when they pop up.',
+      'Each alien you pop earns 1 star.',
+      'You have 30 seconds, so watch all nine craters.'
+    ]
+  });
+}
 
 // tiny sound
 let actx;

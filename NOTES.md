@@ -15,13 +15,9 @@ Current goal: make the dressed-up avatar a universal guide across the arcade.
   - replay help button,
   - step-by-step messages,
   - per-game first-load memory.
-- First guide rollout:
+- First guide rollout is complete for all current arcade games:
   - `math-adventure.html`
   - `space-trace.html`
-
-### Next
-
-- Add guide intros to the remaining games:
   - `star-catcher.html`
   - `star-match.html`
   - `space-pop.html`
@@ -29,6 +25,9 @@ Current goal: make the dressed-up avatar a universal guide across the arcade.
   - `space-dash.html`
   - `cosmic-pong.html`
   - `coller-space.html`
+
+### Next
+
 - Add educational tips after the intro layer:
   - Math Stars: wrong answer, timed mode, counting hints.
   - Space Trace: low match progress, slow tracing reminder.

@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <script src="ios-app.js"></script>
+  <script src="avatar.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
   <title>Coller Space - Design Your Spaceship!</title>
   <style>
@@ -634,6 +635,20 @@ canvas.addEventListener('touchend', stopDrawing);
 initColorPalette();
 initStickerGrid();
 drawSpaceshipBase();
+
+if (window.ArcadeAvatar) {
+  ArcadeAvatar.mountGuide({
+    rootId: 'ship-avatar-guide',
+    gameId: 'coller-space',
+    title: 'Color Ship Mission',
+    primaryLabel: 'Start designing',
+    messages: [
+      'Pick a color, brush size, or sticker.',
+      'Draw on the ship canvas to design your spaceship.',
+      'Use Save to download your finished ship picture.'
+    ]
+  });
+}
 </script>
 
 </body>

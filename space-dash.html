@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <script src="ios-app.js"></script>
+  <script src="avatar.js"></script>
   <title>Space Dash!</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -491,6 +492,20 @@
 
     reset();
     requestAnimationFrame(loop);
+
+    if (window.ArcadeAvatar) {
+      ArcadeAvatar.mountGuide({
+        rootId: 'dash-avatar-guide',
+        gameId: 'space-dash',
+        title: 'Space Dash Mission',
+        primaryLabel: 'Launch',
+        messages: [
+          'Click, tap, or press Space to launch the ship.',
+          'Steer left and right to dodge planets.',
+          'Collect coins to earn stars for the arcade.'
+        ]
+      });
+    }
   </script>
 </body>
 </html>
