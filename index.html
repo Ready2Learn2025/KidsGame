@@ -146,15 +146,15 @@ header { text-align: center; margin-bottom: 8px; }
 }
 body.avatar-shop-open { overflow: hidden; }
 
-.my-avatar-dialog { width: min(780px, 94vw); }
+.my-avatar-dialog { width: min(780px, 94vw); max-height: min(92vh, 820px); }
 .my-avatar-care {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 .my-avatar-room {
   position: relative;
   overflow: hidden;
-  min-height: 250px;
+  min-height: 220px;
   border: 1px solid rgba(255,215,0,0.34);
   border-radius: 22px;
   background:
@@ -165,20 +165,20 @@ body.avatar-shop-open { overflow: hidden; }
   grid-template-columns: minmax(190px, 1fr) minmax(210px, 1fr);
   gap: 14px;
   align-items: end;
-  padding: 20px;
+  padding: 16px 18px;
 }
 .my-avatar-room::before {
   content: '';
   position: absolute;
   inset: auto -8% -24px;
-  height: 88px;
+  height: 76px;
   background: linear-gradient(180deg, #5e5872, #282445);
   border-top: 4px solid rgba(255,255,255,0.2);
 }
 .my-avatar-stage {
   position: relative;
   z-index: 1;
-  min-height: 210px;
+  min-height: 184px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -188,8 +188,8 @@ body.avatar-shop-open { overflow: hidden; }
   position: absolute;
   right: 10px;
   bottom: 2px;
-  width: 128px;
-  height: 42px;
+  width: 118px;
+  height: 36px;
   border-radius: 18px 18px 10px 10px;
   background: linear-gradient(180deg, #7F77DD, #38327d);
   border: 3px solid rgba(255,255,255,0.18);
@@ -206,11 +206,11 @@ body.avatar-shop-open { overflow: hidden; }
   background: white;
   color: #333;
   border-radius: 20px;
-  padding: 16px 18px;
-  min-height: 98px;
+  padding: 14px 16px;
+  min-height: 82px;
   display: flex;
   align-items: center;
-  font-size: 1.05rem;
+  font-size: 1rem;
   line-height: 1.35;
   box-shadow: 0 8px 22px rgba(0,0,0,0.22);
 }
@@ -231,7 +231,7 @@ body.avatar-shop-open { overflow: hidden; }
   background: rgba(255,255,255,0.1);
   border: 1px solid rgba(255,255,255,0.16);
   border-radius: 16px;
-  padding: 11px;
+  padding: 9px;
 }
 .care-stat-label {
   display: flex;
@@ -242,7 +242,7 @@ body.avatar-shop-open { overflow: hidden; }
 }
 .care-bar {
   height: 10px;
-  margin-top: 8px;
+  margin-top: 6px;
   background: rgba(0,0,0,0.32);
   border-radius: 999px;
   overflow: hidden;
@@ -258,13 +258,13 @@ body.avatar-shop-open { overflow: hidden; }
 .care-actions {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 .care-action {
-  min-height: 94px;
+  min-height: 78px;
   border: 0;
   border-radius: 18px;
-  padding: 12px 10px;
+  padding: 10px;
   cursor: pointer;
   font-family: inherit;
   color: #fff;
@@ -280,8 +280,8 @@ body.avatar-shop-open { overflow: hidden; }
 }
 .care-action strong {
   display: block;
-  font-size: 1.02rem;
-  margin-bottom: 6px;
+  font-size: 0.98rem;
+  margin-bottom: 4px;
 }
 .care-action span {
   display: block;
@@ -294,7 +294,7 @@ body.avatar-shop-open { overflow: hidden; }
 .trick-panel {
   display: grid;
   grid-template-columns: 1.2fr 0.8fr;
-  gap: 12px;
+  gap: 10px;
   align-items: stretch;
 }
 .trick-training,
@@ -302,19 +302,19 @@ body.avatar-shop-open { overflow: hidden; }
   background: rgba(255,255,255,0.1);
   border: 1px solid rgba(255,255,255,0.16);
   border-radius: 18px;
-  padding: 14px;
+  padding: 12px;
 }
 .trick-name {
   color: #FFD700;
-  font-size: 1.18rem;
-  margin-bottom: 8px;
+  font-size: 1.1rem;
+  margin-bottom: 7px;
 }
 .trick-progress {
   height: 12px;
   background: rgba(0,0,0,0.34);
   border-radius: 999px;
   overflow: hidden;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 .trick-progress span {
   display: block;
@@ -333,7 +333,7 @@ body.avatar-shop-open { overflow: hidden; }
   font-family: inherit;
   border: 0;
   border-radius: 999px;
-  padding: 10px 16px;
+  padding: 9px 14px;
   cursor: pointer;
   color: #07203A;
   background: #FFD700;
@@ -807,8 +807,8 @@ function refreshMyAvatar(message, mood){
   const care = readAvatarCare(bank);
   saveAvatarCare(bank, care);
   const avatarState = ArcadeAvatar.getState();
-  ArcadeAvatar.drawChar(document.querySelector('[data-my-avatar-char]'), careMood(care, mood), 132, avatarState.char);
-  ArcadeAvatar.drawPet(document.querySelector('[data-my-avatar-pet]'), careMood(care, mood), 76, avatarState.char);
+  ArcadeAvatar.drawChar(document.querySelector('[data-my-avatar-char]'), careMood(care, mood), 118, avatarState.char);
+  ArcadeAvatar.drawPet(document.querySelector('[data-my-avatar-pet]'), careMood(care, mood), 68, avatarState.char);
 
   document.getElementById('my-avatar-talk').textContent = message || careDefaultMessage(care);
   document.getElementById('my-avatar-bed').classList.toggle('upgraded', care.bedLevel > 0);
