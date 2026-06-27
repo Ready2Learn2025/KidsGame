@@ -69,7 +69,7 @@
     
     .container {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
       gap: 30px;
       margin-top: 30px;
       align-items: start;
@@ -144,8 +144,50 @@
       background: rgba(255,255,255,0.08);
       border: 2px solid rgba(255,215,0,0.3);
       border-radius: 20px;
-      padding: 20px;
+      padding: 14px;
       box-shadow: 0 0 20px rgba(255,200,0,0.1);
+    }
+    .tool-shell {
+      display: grid;
+      grid-template-columns: 66px minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+    .tool-rail {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .tool-tab {
+      width: 56px;
+      height: 56px;
+      border: 2px solid rgba(255,255,255,0.24);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 1.55rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .tool-tab:hover { transform: translateY(-2px); border-color: #FFD700; }
+    .tool-tab.active {
+      background: #FFD700;
+      border-color: #FFD700;
+      color: #7A3800;
+      box-shadow: 0 0 16px rgba(255,215,0,0.35);
+    }
+    .tool-panel {
+      min-height: 320px;
+    }
+    .tool-pane {
+      display: none;
+    }
+    .tool-pane.active {
+      display: block;
     }
     
     .control-group {
@@ -298,6 +340,18 @@
         grid-template-columns: 1fr;
         gap: 20px;
       }
+      .tool-shell {
+        grid-template-columns: 1fr;
+      }
+      .tool-rail {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .tool-tab {
+        width: 50px;
+        height: 50px;
+      }
       
       .title-main {
         font-size: 2rem;
@@ -347,51 +401,70 @@
       <div class="canvas-wrapper">
         <canvas id="canvas" width="400" height="500"></canvas>
       </div>
-      <div class="canvas-buttons">
-        <button class="btn" onclick="clearCanvas()">🗑️ Clear</button>
-        <button class="btn btn-secondary" onclick="downloadCanvas()">💾 Save</button>
-        <button class="btn btn-secondary" onclick="undoDrawing()">↶ Undo</button>
-      </div>
     </div>
     
     <!-- CONTROLS -->
     <div class="controls-section">
-      
-      <!-- PAINT COLORS -->
-      <div class="control-group">
-        <div class="control-label">🎨 Paint Color</div>
-        <div class="color-palette" id="colorPalette"></div>
-      </div>
-      
-      <!-- BRUSH SIZE -->
-      <div class="control-group">
-        <div class="control-label">✏️ Brush Size</div>
-        <div class="brush-size-group">
-          <button class="size-btn" onclick="setBrushSize(3)">S</button>
-          <button class="size-btn active" onclick="setBrushSize(8)">M</button>
-          <button class="size-btn" onclick="setBrushSize(15)">L</button>
-          <button class="size-btn" onclick="setBrushSize(25)">XL</button>
+      <div class="tool-shell">
+        <div class="tool-rail" aria-label="Drawing tools">
+          <button class="tool-tab active" type="button" title="Paint color" aria-label="Paint color" onclick="setTool('paint', this)">🎨</button>
+          <button class="tool-tab" type="button" title="Brush size" aria-label="Brush size" onclick="setTool('brush', this)">✏️</button>
+          <button class="tool-tab" type="button" title="Effects" aria-label="Effects" onclick="setTool('effects', this)">✨</button>
+          <button class="tool-tab" type="button" title="Stickers" aria-label="Stickers" onclick="setTool('stickers', this)">🌟</button>
+          <button class="tool-tab" type="button" title="Actions" aria-label="Actions" onclick="setTool('actions', this)">⚙️</button>
+        </div>
+        <div class="tool-panel">
+          <div class="tool-pane active" data-tool-pane="paint">
+            <div class="control-group">
+              <div class="control-label">🎨 Paint Color</div>
+              <div class="color-palette" id="colorPalette"></div>
+            </div>
+          </div>
+
+          <div class="tool-pane" data-tool-pane="brush">
+            <div class="control-group">
+              <div class="control-label">✏️ Brush Size</div>
+              <div class="brush-size-group">
+                <button class="size-btn" onclick="setBrushSize(3, this)">S</button>
+                <button class="size-btn active" onclick="setBrushSize(8, this)">M</button>
+                <button class="size-btn" onclick="setBrushSize(15, this)">L</button>
+                <button class="size-btn" onclick="setBrushSize(25, this)">XL</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="tool-pane" data-tool-pane="effects">
+            <div class="control-group">
+              <div class="control-label">✨ Glitter & Effects</div>
+              <div class="effect-options">
+                <button class="effect-btn active" onclick="toggleEffect('none', this)">🖌️ Normal</button>
+                <button class="effect-btn" onclick="toggleEffect('glitter', this)">✨ Glitter</button>
+                <button class="effect-btn" onclick="toggleEffect('rainbow', this)">🌈 Rainbow</button>
+                <button class="effect-btn" onclick="toggleEffect('glow', this)">💫 Glow</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="tool-pane" data-tool-pane="stickers">
+            <div class="control-group">
+              <div class="control-label">🌟 Add Stickers</div>
+              <p class="info-text">Tap a sticker, then tap the canvas.</p>
+              <div class="sticker-grid" id="stickerGrid"></div>
+            </div>
+          </div>
+
+          <div class="tool-pane" data-tool-pane="actions">
+            <div class="control-group">
+              <div class="control-label">⚙️ Canvas Actions</div>
+              <div class="effect-options">
+                <button class="btn" onclick="clearCanvas()">🗑️ Clear</button>
+                <button class="btn btn-secondary" onclick="downloadCanvas()">💾 Save</button>
+                <button class="btn btn-secondary" onclick="undoDrawing()">↶ Undo</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      
-      <!-- GLITTER EFFECTS -->
-      <div class="control-group">
-        <div class="control-label">✨ Glitter & Effects</div>
-        <div class="effect-options">
-          <button class="effect-btn active" onclick="toggleEffect('none')">🖌️ Normal</button>
-          <button class="effect-btn" onclick="toggleEffect('glitter')">✨ Glitter</button>
-          <button class="effect-btn" onclick="toggleEffect('rainbow')">🌈 Rainbow</button>
-          <button class="effect-btn" onclick="toggleEffect('glow')">💫 Glow</button>
-        </div>
-      </div>
-      
-      <!-- STICKERS -->
-      <div class="control-group">
-        <div class="control-label">🌟 Add Stickers</div>
-        <p class="info-text">Click a sticker, then click on the canvas to place it!</p>
-        <div class="sticker-grid" id="stickerGrid"></div>
-      </div>
-      
     </div>
   </div>
 </div>
@@ -423,6 +496,14 @@ const STICKERS = ['🚀', '🛸', '⭐', '🌙', '💫', '🪐', '🛰️', '�
 // ─────────────────────────────────────
 // INITIALIZE UI
 // ─────────────────────────────────────
+function setTool(tool, btn) {
+  document.querySelectorAll('.tool-tab').forEach(tab => tab.classList.remove('active'));
+  document.querySelectorAll('.tool-pane').forEach(pane => pane.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const pane = document.querySelector(`[data-tool-pane="${tool}"]`);
+  if (pane) pane.classList.add('active');
+}
+
 function initColorPalette() {
   const palette = document.getElementById('colorPalette');
   COLORS.forEach(color => {
@@ -457,16 +538,16 @@ function selectSticker(btn, sticker) {
   selectedSticker = sticker;
 }
 
-function setBrushSize(size) {
+function setBrushSize(size, btn) {
   brushSize = size;
   document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if (btn) btn.classList.add('active');
 }
 
-function toggleEffect(effect) {
+function toggleEffect(effect, btn) {
   currentEffect = effect;
   document.querySelectorAll('.effect-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if (btn) btn.classList.add('active');
 }
 
 // ─────────────────────────────────────
@@ -476,22 +557,10 @@ function saveHistory() {
   history = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
 }
 
-function drawSpaceshipBase() {
-  // Draw a simple spaceship body
-  ctx.fillStyle = 'rgba(255, 200, 0, 0.1)';
-  ctx.beginPath();
-  ctx.moveTo(200, 100);
-  ctx.lineTo(280, 350);
-  ctx.lineTo(200, 400);
-  ctx.lineTo(120, 350);
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255, 200, 0, 0.3)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-}
+function drawSpaceshipBase() {}
 
 function startDrawing(e) {
+  e.preventDefault();
   if (history.length === 0) saveHistory();
   isDrawing = true;
   const pos = getCanvasPos(e);
@@ -505,6 +574,7 @@ function startDrawing(e) {
 }
 
 function draw(e) {
+  e.preventDefault();
   if (!isDrawing || selectedSticker) return;
   
   const pos = getCanvasPos(e);
@@ -552,7 +622,8 @@ function draw(e) {
   }
 }
 
-function stopDrawing() {
+function stopDrawing(e) {
+  if (e) e.preventDefault();
   isDrawing = false;
   ctx.closePath();
 }
@@ -586,7 +657,6 @@ function placeSticker(x, y) {
 
 function clearCanvas() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawSpaceshipBase();
   history = [];
 }
 
@@ -613,9 +683,9 @@ canvas.addEventListener('mousemove', draw);
 canvas.addEventListener('mouseup', stopDrawing);
 canvas.addEventListener('mouseout', stopDrawing);
 
-canvas.addEventListener('touchstart', startDrawing);
-canvas.addEventListener('touchmove', draw);
-canvas.addEventListener('touchend', stopDrawing);
+canvas.addEventListener('touchstart', startDrawing, { passive:false });
+canvas.addEventListener('touchmove', draw, { passive:false });
+canvas.addEventListener('touchend', stopDrawing, { passive:false });
 
 // ─────────────────────────────────────
 // SPACE BACKGROUND
@@ -634,7 +704,6 @@ canvas.addEventListener('touchend', stopDrawing);
 // Initialize
 initColorPalette();
 initStickerGrid();
-drawSpaceshipBase();
 
 if (window.ArcadeAvatar) {
   ArcadeAvatar.mountGuide({
@@ -643,9 +712,9 @@ if (window.ArcadeAvatar) {
     title: 'Color Ship Mission',
     primaryLabel: 'Start designing',
     messages: [
-      'Pick a color, brush size, or sticker.',
-      'Draw on the ship canvas to design your spaceship.',
-      'Use Save to download your finished ship picture.'
+      'Use the side icons to choose colors, brush size, effects, stickers, or actions.',
+      'Draw on the blank canvas to design your spaceship.',
+      'Use the actions icon when you want to save, clear, or undo.'
     ]
   });
 }

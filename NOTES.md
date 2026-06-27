@@ -35,22 +35,20 @@ Current goal: make the dressed-up avatar a universal guide across the arcade.
   - Color Planets: wrong color bin reminder.
 - Keep action-game guidance short and avoid interrupting active play.
 
-## Deferred Game Enhancements
-
-Documented for later work only; do not start these until the avatar shop button and pet hats work is complete and verified.
+## Completed Game Enhancements
 
 - Color Planets:
   - Add a richer space background with occasional shooting stars and rockets.
-  - Add a 30 second timer.
   - Add best score tracking.
+  - No timer added by request.
 - Star Catcher:
   - Replace the heart-only HUD label with `Health |` followed by the hearts.
   - Add best score tracking.
 - Space Trace:
-  - Plan a separate rebuild because touch input is unreliable.
+  - Rebuild input handling around pointer events so mouse, touch, and stylus tracing share one path.
+  - Rework trace coverage calculation against the actual drawn canvas so touch progress is reliable.
 - Star Match:
-  - Add a 2 minute timer on Medium.
-  - Add a 2:30 timer on Hard.
+  - Add a 3 minute timer to each difficulty.
   - Track quickest time as the best score.
 - Space Pop:
   - Add clearer explanation of what to pop and what not to pop.

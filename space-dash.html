@@ -117,7 +117,7 @@
     }
 
     function updateHUD() {
-      scoreEl.textContent = score;
+      scoreEl.textContent = Math.floor(score);
       livesEl.textContent = lives > 0 ? '❤️'.repeat(lives) : '💀';
       bestEl.textContent  = best;
       coinsEl.textContent = totalCoins;
