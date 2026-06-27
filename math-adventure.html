@@ -1061,6 +1061,19 @@ function loadProgress(){
 // ── INIT ──
 loadProgress();
 drawChar('title-char','happy',155);
+if (window.ArcadeAvatar) {
+  ArcadeAvatar.mountGuide({
+    rootId: 'math-avatar-guide',
+    gameId: 'math-adventure',
+    title: 'Math Stars Mission',
+    primaryLabel: 'Ready',
+    messages: [
+      'Pick a mission, then tap the answer to each space math question.',
+      'Easy has no timer. Hard gives you 15 seconds, and Harder gives you 7 seconds.',
+      'Correct answers earn stars for the arcade and your avatar shop.'
+    ]
+  });
+}
 updateScores();
 </script>
 </body>

@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <script src="ios-app.js"></script>
+  <script src="avatar.js"></script>
   <title>Space Trace!</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -448,6 +449,19 @@
 
     reset();
     animate();
+    if (window.ArcadeAvatar) {
+      ArcadeAvatar.mountGuide({
+        rootId: 'trace-avatar-guide',
+        gameId: 'space-trace',
+        title: 'Space Trace Mission',
+        primaryLabel: 'Start tracing',
+        messages: [
+          'Choose a level, then trace over the glowing letter with your finger or mouse.',
+          'Stay on the bright outline and fill enough of the shape to reach 70 percent.',
+          'Each finished letter earns 5 stars for the arcade.'
+        ]
+      });
+    }
   </script>
 </body>
 </html>

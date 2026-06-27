@@ -53,6 +53,7 @@
 
   const BODY = {red:'#FF3B30',orange:'#FF9500',yellow:'#FFD700',blue:'#007AFF',green:'#34C759',purple:'#AF52DE',pink:'#FF2D55',teal:'#32ADE6',gold:'#FFB700'};
   const mounts = {};
+  const guideMounts = {};
 
   function arcadeLoad(){ try { return JSON.parse(localStorage.getItem(ARCADE_KEY)) || {}; } catch(e){ return {}; } }
   function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
@@ -336,7 +337,25 @@
       .avatar-emoji{font-size:2.35rem;}
       .avatar-card-name{font-size:0.88rem;color:#444;margin-top:6px;min-height:34px;display:flex;align-items:center;justify-content:center;}
       .avatar-buy-btn{font-family:inherit;font-size:0.8rem;padding:8px 0;width:100%;border:0;border-radius:10px;cursor:pointer;margin-top:7px;color:white;}
+      .avatar-guide-help{position:fixed;right:16px;top:calc(66px + env(safe-area-inset-top));z-index:1210;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,215,0,0.48);background:rgba(7,7,24,0.86);color:#FFD700;font-family:inherit;font-size:1.1rem;box-shadow:0 8px 24px rgba(0,0,0,0.32);cursor:pointer;}
+      .avatar-guide-overlay{position:fixed;inset:0;z-index:1300;background:rgba(3,3,16,0.68);display:flex;align-items:center;justify-content:center;padding:20px;}
+      .avatar-guide-overlay[hidden]{display:none;}
+      .avatar-guide-card{width:min(560px,94vw);background:rgba(14,14,42,0.96);border:2px solid rgba(255,215,0,0.46);border-radius:24px;padding:20px;box-shadow:0 18px 50px rgba(0,0,0,0.48);color:#fff;}
+      .avatar-guide-main{display:flex;gap:18px;align-items:flex-end;}
+      .avatar-guide-art{display:flex;align-items:flex-end;justify-content:center;gap:4px;min-width:142px;}
+      .avatar-guide-copy{flex:1;display:grid;gap:10px;}
+      .avatar-guide-title{font-size:1.45rem;color:#FFD700;text-shadow:0 0 12px rgba(255,200,0,0.35);}
+      .avatar-guide-bubble{position:relative;background:#fff;color:#333;border-radius:18px;padding:14px 16px;font-size:1.05rem;line-height:1.35;min-height:78px;display:flex;align-items:center;}
+      .avatar-guide-bubble::after{content:'';position:absolute;left:-12px;bottom:20px;border:7px solid transparent;border-right-color:#fff;}
+      .avatar-guide-dots{display:flex;gap:6px;justify-content:center;min-height:9px;}
+      .avatar-guide-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.3);}
+      .avatar-guide-dot.active{background:#FFD700;}
+      .avatar-guide-actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px;}
+      .avatar-guide-btn{font-family:inherit;border:0;border-radius:999px;padding:10px 18px;cursor:pointer;font-size:0.95rem;}
+      .avatar-guide-btn.secondary{background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.22);}
+      .avatar-guide-btn.primary{background:#FFD700;color:#7A3800;}
       @media (max-width:520px){.avatar-preview{align-items:center}.avatar-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.avatar-card-name{font-size:0.78rem;}.avatar-tab{font-size:0.82rem;padding:8px 12px;}}
+      @media (max-width:520px){.avatar-guide-overlay{align-items:flex-end;padding:12px;}.avatar-guide-card{padding:16px;border-radius:20px;}.avatar-guide-main{align-items:center;gap:10px;}.avatar-guide-art{min-width:96px;}.avatar-guide-title{font-size:1.18rem;}.avatar-guide-bubble{font-size:0.92rem;min-height:96px;}.avatar-guide-bubble::after{display:none;}.avatar-guide-help{right:12px;top:calc(62px + env(safe-area-inset-top));}}
     `;
     document.head.appendChild(s);
   }
@@ -443,11 +462,123 @@
     renderShop(rootId);
   }
 
+  function guideSeenKey(gameId){
+    return 'avatarGuideSeen.' + gameId;
+  }
+  function readSeen(gameId){
+    try { return localStorage.getItem(guideSeenKey(gameId)) === 'true'; } catch(e) { return false; }
+  }
+  function writeSeen(gameId){
+    try { localStorage.setItem(guideSeenKey(gameId), 'true'); } catch(e) {}
+  }
+  function currentGuideMessage(ctx){
+    return ctx.messages[Math.max(0, Math.min(ctx.index, ctx.messages.length - 1))] || '';
+  }
+  function renderGuide(ctx){
+    drawChar(ctx.root.querySelector('[data-guide-char]'), ctx.mood || 'happy', ctx.charSize || 104);
+    drawPet(ctx.root.querySelector('[data-guide-pet]'), ctx.mood || 'happy', ctx.petSize || 58);
+    ctx.root.querySelector('[data-guide-title]').textContent = ctx.title || 'Your Space Buddy';
+    ctx.root.querySelector('[data-guide-message]').textContent = currentGuideMessage(ctx);
+    const dots = ctx.root.querySelector('[data-guide-dots]');
+    dots.innerHTML = '';
+    ctx.messages.forEach((_, i) => {
+      const dot = document.createElement('span');
+      dot.className = 'avatar-guide-dot' + (i === ctx.index ? ' active' : '');
+      dots.appendChild(dot);
+    });
+    const primary = ctx.root.querySelector('[data-guide-primary]');
+    primary.textContent = ctx.index < ctx.messages.length - 1 ? 'Next' : (ctx.primaryLabel || 'Got it');
+    ctx.root.querySelector('[data-guide-back]').hidden = ctx.index === 0;
+  }
+  function showGuide(rootId){
+    const ctx = guideMounts[rootId]; if (!ctx) return;
+    ctx.index = 0;
+    renderGuide(ctx);
+    ctx.root.hidden = false;
+  }
+  function hideGuide(rootId){
+    const ctx = guideMounts[rootId]; if (!ctx) return;
+    ctx.root.hidden = true;
+    if (ctx.remember !== false) writeSeen(ctx.gameId);
+    if (ctx.onClose) ctx.onClose();
+  }
+  function mountGuide(options){
+    injectStyles();
+    const gameId = options.gameId || 'game';
+    const rootId = options.rootId || ('avatar-guide-' + gameId);
+    let root = resolveEl(rootId);
+    if (!root) {
+      root = document.createElement('div');
+      root.id = rootId;
+      document.body.appendChild(root);
+    }
+    root.className = 'avatar-guide-overlay';
+    root.hidden = true;
+    root.innerHTML = `<div class="avatar-guide-card" role="dialog" aria-modal="true" aria-labelledby="${rootId}-title">
+      <div class="avatar-guide-main">
+        <div class="avatar-guide-art">
+          <div data-guide-char></div>
+          <div data-guide-pet></div>
+        </div>
+        <div class="avatar-guide-copy">
+          <div class="avatar-guide-title" id="${rootId}-title" data-guide-title></div>
+          <div class="avatar-guide-bubble" data-guide-message></div>
+          <div class="avatar-guide-dots" data-guide-dots></div>
+        </div>
+      </div>
+      <div class="avatar-guide-actions">
+        <button class="avatar-guide-btn secondary" data-guide-back type="button">Back</button>
+        <button class="avatar-guide-btn secondary" data-guide-close type="button">Skip</button>
+        <button class="avatar-guide-btn primary" data-guide-primary type="button">Got it</button>
+      </div>
+    </div>`;
+    const help = document.createElement('button');
+    help.className = 'avatar-guide-help';
+    help.type = 'button';
+    help.setAttribute('aria-label', 'Show game help');
+    help.textContent = '?';
+    document.body.appendChild(help);
+
+    guideMounts[rootId] = {
+      root,
+      help,
+      gameId,
+      title: options.title,
+      messages: Array.isArray(options.messages) && options.messages.length ? options.messages : ['Ready for a space mission?'],
+      primaryLabel: options.primaryLabel,
+      remember: options.remember,
+      onClose: options.onClose,
+      mood: options.mood,
+      charSize: options.charSize,
+      petSize: options.petSize,
+      index: 0
+    };
+    const ctx = guideMounts[rootId];
+    help.addEventListener('click', () => showGuide(rootId));
+    root.querySelector('[data-guide-close]').addEventListener('click', () => hideGuide(rootId));
+    root.querySelector('[data-guide-back]').addEventListener('click', () => {
+      ctx.index = Math.max(0, ctx.index - 1);
+      renderGuide(ctx);
+    });
+    root.querySelector('[data-guide-primary]').addEventListener('click', () => {
+      if (ctx.index < ctx.messages.length - 1) {
+        ctx.index++;
+        renderGuide(ctx);
+      } else {
+        hideGuide(rootId);
+      }
+    });
+    renderGuide(ctx);
+    if (options.show !== false && !readSeen(gameId)) showGuide(rootId);
+  }
+
   window.ArcadeAvatar = {
     getState: () => getState(true),
     drawChar,
     drawPet,
     mountShop,
+    mountGuide,
+    showGuide,
     refreshShop: renderShop
   };
 })();
