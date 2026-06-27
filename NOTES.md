@@ -20,6 +20,7 @@ Current goal: make the dressed-up avatar a universal guide across the arcade.
   - `math-adventure.html`
   - `space-trace.html`
   - `star-catcher.html`
+  - `space-jump.html`
   - `star-match.html`
   - `space-pop.html`
   - `color-planets.html`
@@ -56,6 +57,9 @@ Current goal: make the dressed-up avatar a universal guide across the arcade.
 - Space Dash:
   - Reduce planet density so the screen is less messy.
   - Add a fuel symbol that gives bonus points and a speed boost.
+- Space Jump:
+  - Add a Flappy Bird-style jumping game with Easy, Hard, and Harder modes.
+  - Add coins that multiply over time, x2 coin powerups, and 3 moon pieces for a bonus.
 - Cosmic Pong:
   - Fix the iOS web issue where the player cannot get past the "move your mouse up and down" start instruction.
 - Color Ship:

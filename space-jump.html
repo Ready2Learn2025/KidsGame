@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<script src="ios-app.js"></script>
+<script src="avatar.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+<title>Space Jump!</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 22px 14px 28px;
+    background: radial-gradient(ellipse at 50% 12%, #1a1060 0%, #080820 62%, #030310 100%);
+    color: #fff;
+    font-family: 'Fredoka One', 'Arial Rounded MT Bold', 'Arial Black', Arial, sans-serif;
+    overflow-x: hidden;
+    user-select: none;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 18% 18%, rgba(255,215,0,0.16), transparent 16%),
+      radial-gradient(circle at 82% 8%, rgba(50,173,230,0.14), transparent 13%),
+      radial-gradient(circle at 78% 82%, rgba(175,82,222,0.18), transparent 17%);
+    opacity: 0.8;
+  }
+  #home-link {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 50;
+    padding: 9px 18px;
+    border: 1px solid rgba(255,215,0,0.42);
+    border-radius: 30px;
+    background: rgba(255,255,255,0.1);
+    color: #FFD700;
+    font-size: 15px;
+    text-decoration: none;
+  }
+  #home-link:hover { background: rgba(255,215,0,0.18); }
+  .shell {
+    position: relative;
+    z-index: 1;
+    width: min(540px, 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  h1 {
+    font-size: clamp(2rem, 8vw, 3rem);
+    color: #FFD700;
+    line-height: 1;
+    text-align: center;
+    text-shadow: 0 0 26px rgba(255,200,0,0.48), 4px 4px 0 rgba(0,0,0,0.36);
+  }
+  .hud {
+    width: min(500px, 96vw);
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 7px;
+  }
+  .hud-card {
+    min-height: 56px;
+    padding: 8px 5px 7px;
+    border: 2px solid rgba(255,215,0,0.42);
+    border-radius: 16px;
+    background: rgba(12,18,70,0.84);
+    box-shadow: inset 0 0 18px rgba(80,120,255,0.18), 0 8px 20px rgba(0,0,0,0.24);
+    text-align: center;
+  }
+  .hud-card small {
+    display: block;
+    margin-bottom: 2px;
+    color: rgba(255,255,255,0.76);
+    font-size: 0.66rem;
+    line-height: 1.05;
+  }
+  .hud-card strong {
+    display: block;
+    color: #FFD700;
+    font-size: clamp(0.94rem, 3.3vw, 1.26rem);
+    line-height: 1.1;
+    text-shadow: 0 0 12px rgba(255,200,0,0.35);
+  }
+  #moon-val {
+    font-size: clamp(0.84rem, 2.8vw, 1.06rem);
+    letter-spacing: 1px;
+  }
+  .board {
+    width: min(500px, 96vw);
+    padding: 8px;
+    border: 3px solid #FFD700;
+    border-radius: 22px;
+    background: linear-gradient(180deg, rgba(255,215,0,0.16), rgba(44,39,148,0.1));
+    box-shadow: 0 0 34px rgba(255,200,0,0.22), 0 16px 42px rgba(0,0,0,0.4);
+  }
+  #canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 16px;
+    background: #050514;
+    cursor: pointer;
+    touch-action: none;
+  }
+  .modes {
+    width: min(500px, 96vw);
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 9px;
+    margin-top: 3px;
+  }
+  .mode-btn {
+    min-height: 54px;
+    border: 2px solid rgba(255,255,255,0.22);
+    border-radius: 18px;
+    color: #fff;
+    font-family: inherit;
+    font-size: clamp(0.92rem, 4vw, 1.2rem);
+    text-shadow: 0 2px 0 rgba(0,0,0,0.28);
+    box-shadow: 0 6px 0 rgba(0,0,0,0.3), 0 10px 24px rgba(0,0,0,0.24);
+    cursor: pointer;
+  }
+  .mode-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0 rgba(0,0,0,0.3), 0 8px 18px rgba(0,0,0,0.22);
+  }
+  .mode-btn.easy { background: linear-gradient(#55db44, #138f20); }
+  .mode-btn.hard { background: linear-gradient(#ffb22c, #e05d00); }
+  .mode-btn.harder { background: linear-gradient(#ba68ff, #6731c5); }
+  .mode-btn.active {
+    border-color: #FFD700;
+    box-shadow: 0 6px 0 rgba(116,70,0,0.68), 0 0 28px rgba(255,215,0,0.34);
+  }
+  #status {
+    width: min(500px, 96vw);
+    min-height: 30px;
+    padding: 7px 12px;
+    border: 1px solid rgba(255,215,0,0.28);
+    border-radius: 999px;
+    background: rgba(0,0,0,0.22);
+    color: rgba(255,255,255,0.78);
+    font-size: 0.9rem;
+    line-height: 1.2;
+    text-align: center;
+  }
+  @media (max-width: 520px) {
+    body { padding: 18px 8px 20px; }
+    .hud { gap: 5px; }
+    .hud-card { min-height: 50px; padding: 7px 3px 6px; border-radius: 13px; }
+    .hud-card small { font-size: 0.58rem; }
+    .modes { gap: 6px; }
+    .mode-btn { min-height: 48px; border-radius: 15px; }
+    #status { font-size: 0.78rem; }
+  }
+</style>
+</head>
+<body>
+<a id="home-link" href="index.html">🏠 Home</a>
+
+<main class="shell" aria-label="Space Jump game">
+  <h1>🌙 Space Jump 🚀</h1>
+  <div class="hud" aria-live="polite">
+    <div class="hud-card"><small>Mode</small><strong id="mode-val">Easy</strong></div>
+    <div class="hud-card"><small>Score</small><strong id="score-val">0</strong></div>
+    <div class="hud-card"><small>Coins <span id="mult-val">x1</span></small><strong id="coins-val">0</strong></div>
+    <div class="hud-card"><small>Moon</small><strong id="moon-val">○○○</strong></div>
+    <div class="hud-card"><small>Best</small><strong id="best-val">0</strong></div>
+  </div>
+  <div class="board">
+    <canvas id="canvas" width="500" height="650"></canvas>
+  </div>
+  <div class="modes" role="group" aria-label="Space Jump difficulty">
+    <button class="mode-btn easy active" type="button" data-mode="easy">⭐ Easy</button>
+    <button class="mode-btn hard" type="button" data-mode="hard">🚀 Hard</button>
+    <button class="mode-btn harder" type="button" data-mode="harder">🪐 Harder</button>
+  </div>
+  <div id="status">Tap, click, or press Space to jump.</div>
+</main>
+
+<div id="jump-avatar-guide"></div>
+
+<script>
+// ── SHARED ARCADE BANK ──
+const ARCADE_KEY = 'masonArcade';
+function arcadeLoad(){ try { return JSON.parse(localStorage.getItem(ARCADE_KEY)) || {}; } catch(e){ return {}; } }
+function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
+function arcadeEarn(n){
+  const amount = Math.max(0, Math.floor(n || 0));
+  if (!amount) return;
+  const b = arcadeLoad();
+  b.coins = (b.coins || 0) + amount;
+  b.earned = (b.earned || 0) + amount;
+  arcadeSave(b);
+}
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width;
+const H = canvas.height;
+const modeEl = document.getElementById('mode-val');
+const scoreEl = document.getElementById('score-val');
+const coinsEl = document.getElementById('coins-val');
+const multEl = document.getElementById('mult-val');
+const moonEl = document.getElementById('moon-val');
+const bestEl = document.getElementById('best-val');
+const statusEl = document.getElementById('status');
+const modeButtons = Array.from(document.querySelectorAll('.mode-btn'));
+
+const MODES = {
+  easy:   { label:'Easy',   gravity:0.23, jump:-5.45, speed:2.15, gap:204, gateEvery:118, hazardChance:0.18, moonChance:0.42, scoreRate:0.050 },
+  hard:   { label:'Hard',   gravity:0.28, jump:-5.95, speed:2.85, gap:164, gateEvery:101, hazardChance:0.28, moonChance:0.36, scoreRate:0.064 },
+  harder: { label:'Harder', gravity:0.32, jump:-6.35, speed:3.35, gap:136, gateEvery:88,  hazardChance:0.36, moonChance:0.31, scoreRate:0.078 }
+};
+
+const SPRITES = {
+  astronaut:[0,0], topRock:[1,0], coin:[2,0], boost:[3,0],
+  bottomRock:[0,1], hazard:[3,1],
+  moon0:[0,2], moon1:[1,2], moon2:[2,2], planet:[3,2]
+};
+const spriteSheet = new Image();
+let spritesReady = false;
+spriteSheet.onload = () => { spritesReady = true; };
+spriteSheet.src = 'assets/space-jump-sprites.png';
+
+const player = { x: 118, y: H * 0.48, vy: 0, r: 25, angle: 0 };
+let activeMode = 'easy';
+let cfg = MODES[activeMode];
+let state = 'ready';
+let score = 0;
+let coinsRun = 0;
+let moonPieces = 0;
+let moonCycles = 0;
+let boostTimer = 0;
+let gates = [];
+let pickups = [];
+let hazards = [];
+let bursts = [];
+let stars = [];
+let frame = 0;
+let gateTimer = 0;
+let flashTimer = 0;
+let best = getBest(activeMode);
+let lastTime = 0;
+let parallax = 0;
+
+function initStars(){
+  stars = Array.from({length: 115}, () => ({
+    x: Math.random() * W,
+    y: Math.random() * H,
+    r: Math.random() * 1.6 + 0.35,
+    d: Math.random() * 0.8 + 0.25,
+    tw: Math.random() * Math.PI * 2
+  }));
+}
+
+function getBest(modeKey){
+  const b = arcadeLoad();
+  const bests = b.bestSpaceJump || {};
+  return bests[modeKey] || 0;
+}
+
+function saveBest(value){
+  const b = arcadeLoad();
+  const bests = {...(b.bestSpaceJump || {})};
+  if (value > (bests[activeMode] || 0)) {
+    bests[activeMode] = value;
+    b.bestSpaceJump = bests;
+    b.bestSpaceJumpOverall = Math.max(value, b.bestSpaceJumpOverall || 0);
+    arcadeSave(b);
+  }
+}
+
+function reset(){
+  cfg = MODES[activeMode];
+  player.y = H * 0.48;
+  player.vy = 0;
+  player.angle = 0;
+  state = 'ready';
+  score = 0;
+  coinsRun = 0;
+  moonPieces = 0;
+  moonCycles = 0;
+  boostTimer = 0;
+  gates = [];
+  pickups = [];
+  hazards = [];
+  bursts = [];
+  frame = 0;
+  gateTimer = 42;
+  flashTimer = 0;
+  best = getBest(activeMode);
+  updateHUD();
+  statusEl.textContent = `${cfg.label} mode ready. Tap the canvas to launch.`;
+}
+
+function updateHUD(){
+  const scoreInt = Math.floor(score);
+  modeEl.textContent = cfg.label;
+  scoreEl.textContent = scoreInt;
+  coinsEl.textContent = coinsRun;
+  multEl.textContent = `x${coinMultiplier()}`;
+  moonEl.textContent = '🌙'.repeat(moonPieces) + '○'.repeat(3 - moonPieces);
+  bestEl.textContent = Math.max(best, scoreInt);
+  if (state === 'playing') {
+    statusEl.textContent = boostTimer > 0
+      ? `Coin boost active: x${coinMultiplier()} coins.`
+      : `Coins grow over time: x${baseMultiplier()} now.`;
+  }
+}
+
+function baseMultiplier(){
+  return Math.min(5, 1 + Math.floor(score / 32));
+}
+
+function coinMultiplier(){
+  return baseMultiplier() * (boostTimer > 0 ? 2 : 1);
+}
+
+function setMode(modeKey){
+  if (!MODES[modeKey]) return;
+  activeMode = modeKey;
+  modeButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === modeKey));
+  reset();
+}
+
+function jump(){
+  if (state === 'over') reset();
+  if (state === 'ready') {
+    state = 'playing';
+    gateTimer = 24;
+  }
+  player.vy = cfg.jump;
+  player.angle = -0.28;
+  burst(player.x - 24, player.y + 18, 'jump', '#72D7F5');
+  tone(540, 0.055, 'sine', 0.08);
+}
+
+function spawnGate(){
+  const minY = 86 + cfg.gap / 2;
+  const maxY = H - 96 - cfg.gap / 2;
+  const gapY = minY + Math.random() * (maxY - minY);
+  const gate = {
+    x: W + 34,
+    w: 88,
+    gapY,
+    gap: cfg.gap,
+    passed: false
+  };
+  gates.push(gate);
+  spawnPickups(gate);
+  if (Math.random() < cfg.hazardChance) {
+    hazards.push({
+      x: W + 190 + Math.random() * 120,
+      y: 92 + Math.random() * (H - 184),
+      r: 24,
+      speed: cfg.speed * (1.1 + Math.random() * 0.42),
+      wobble: Math.random() * 7
+    });
+  }
+}
+
+function spawnPickups(gate){
+  const coinCount = Math.random() < 0.62 ? 3 : 2;
+  for (let i = 0; i < coinCount; i++) {
+    pickups.push({
+      type: 'coin',
+      x: gate.x + 135 + i * 42,
+      y: gate.gapY + (i - 1) * 26 + (Math.random() * 12 - 6),
+      r: 16,
+      spin: Math.random() * Math.PI * 2
+    });
+  }
+  if (Math.random() < 0.24) {
+    pickups.push({
+      type: 'boost',
+      x: gate.x + 260,
+      y: gate.gapY + (Math.random() * 76 - 38),
+      r: 21,
+      spin: 0
+    });
+  }
+  if (Math.random() < cfg.moonChance) {
+    pickups.push({
+      type: 'moon',
+      piece: moonPieces % 3,
+      x: gate.x + 330,
+      y: gate.gapY + (Math.random() * 92 - 46),
+      r: 22,
+      spin: Math.random() * 0.4 - 0.2
+    });
+  }
+}
+
+function update(dt){
+  if (state !== 'playing') {
+    bursts.forEach(b => { b.life -= 0.035 * dt; b.y -= 0.8 * dt; });
+    bursts = bursts.filter(b => b.life > 0);
+    return;
+  }
+
+  frame += dt;
+  parallax += cfg.speed * dt;
+  score += cfg.scoreRate * dt;
+  if (boostTimer > 0) boostTimer = Math.max(0, boostTimer - dt);
+  if (flashTimer > 0) flashTimer = Math.max(0, flashTimer - dt);
+
+  player.vy += cfg.gravity * dt;
+  player.y += player.vy * dt;
+  player.angle = Math.max(-0.35, Math.min(0.58, player.vy * 0.055));
+  if (player.y < 28) {
+    player.y = 28;
+    player.vy = 0;
+  }
+  if (player.y > H - 30) endRun('low');
+
+  gateTimer -= dt;
+  if (gateTimer <= 0) {
+    spawnGate();
+    gateTimer = cfg.gateEvery;
+  }
+
+  gates.forEach(g => {
+    g.x -= cfg.speed * dt;
+    if (!g.passed && g.x + g.w < player.x) {
+      g.passed = true;
+      score += 4;
+      burst(g.x + g.w, g.gapY, '+4', '#FFD700');
+      tone(660, 0.05, 'triangle', 0.06);
+    }
+  });
+  gates = gates.filter(g => g.x > -130);
+
+  pickups.forEach(p => {
+    p.x -= cfg.speed * dt;
+    p.spin += 0.05 * dt;
+    if (hitCircle(player.x, player.y, player.r, p.x, p.y, p.r)) collectPickup(p);
+  });
+  pickups = pickups.filter(p => !p.dead && p.x > -80);
+
+  hazards.forEach(h => {
+    h.x -= h.speed * dt;
+    h.y += Math.sin((frame + h.wobble) * 0.06) * 0.55 * dt;
+    if (hitCircle(player.x, player.y, player.r * 0.78, h.x, h.y, h.r)) endRun('star');
+  });
+  hazards = hazards.filter(h => h.x > -90);
+
+  gates.forEach(g => {
+    const topH = g.gapY - g.gap / 2;
+    const bottomY = g.gapY + g.gap / 2;
+    if (
+      circleRect(player.x, player.y, player.r * 0.86, g.x + 12, -12, g.w - 24, topH + 4) ||
+      circleRect(player.x, player.y, player.r * 0.86, g.x + 12, bottomY - 4, g.w - 24, H - bottomY + 16)
+    ) {
+      endRun('rock');
+    }
+  });
+
+  bursts.forEach(b => { b.life -= 0.04 * dt; b.y -= 0.9 * dt; });
+  bursts = bursts.filter(b => b.life > 0);
+  updateHUD();
+}
+
+function collectPickup(p){
+  p.dead = true;
+  if (p.type === 'coin') {
+    const value = coinMultiplier();
+    coinsRun += value;
+    arcadeEarn(value);
+    burst(p.x, p.y, `+${value}`, '#FFD700');
+    tone(880, 0.06, 'sine', 0.08);
+    return;
+  }
+  if (p.type === 'boost') {
+    const bonus = 5 * baseMultiplier();
+    boostTimer = Math.max(boostTimer, 560);
+    coinsRun += bonus;
+    arcadeEarn(bonus);
+    burst(p.x, p.y, `x2 +${bonus}`, '#72D7F5');
+    chime();
+    return;
+  }
+  if (p.type === 'moon') {
+    moonPieces++;
+    burst(p.x, p.y, `${moonPieces}/3`, '#FFF2A8');
+    tone(740 + moonPieces * 80, 0.08, 'sine', 0.08);
+    if (moonPieces >= 3) {
+      moonPieces = 0;
+      moonCycles++;
+      coinsRun += 25;
+      score += 12;
+      arcadeEarn(25);
+      burst(W / 2, H / 2 - 60, 'FULL MOON +25', '#FFF2A8', 1.3);
+      chime();
+    }
+  }
+}
+
+function endRun(reason){
+  if (state !== 'playing') return;
+  state = 'over';
+  flashTimer = 16;
+  const scoreInt = Math.floor(score);
+  if (scoreInt > best) {
+    best = scoreInt;
+    saveBest(scoreInt);
+  }
+  const note = reason === 'star' ? 'Shooting star!' : reason === 'rock' ? 'Asteroid bump!' : 'Low orbit!';
+  statusEl.textContent = `${note} Score ${scoreInt}, coins ${coinsRun}. Tap to try again.`;
+  tone(190, 0.16, 'sawtooth', 0.05);
+  updateHUD();
+}
+
+function hitCircle(x1,y1,r1,x2,y2,r2){
+  return Math.hypot(x1 - x2, y1 - y2) < r1 + r2;
+}
+
+function circleRect(cx, cy, r, rx, ry, rw, rh){
+  const nx = Math.max(rx, Math.min(cx, rx + rw));
+  const ny = Math.max(ry, Math.min(cy, ry + rh));
+  return Math.hypot(cx - nx, cy - ny) < r;
+}
+
+function burst(x, y, text, color, scale = 1){
+  bursts.push({ x, y, text, color, life: 1, scale });
+}
+
+function draw(){
+  drawBackground();
+  gates.forEach(drawGate);
+  pickups.forEach(drawPickup);
+  hazards.forEach(drawHazard);
+  drawPlayer();
+  drawBursts();
+  if (flashTimer > 0) {
+    ctx.fillStyle = `rgba(255,60,80,${0.16 * (flashTimer / 16)})`;
+    ctx.fillRect(0, 0, W, H);
+  }
+  if (state === 'ready') drawOverlay('Space Jump', `${cfg.label} mode`, 'Tap, click, or press Space');
+  if (state === 'over') drawOverlay('Nice jumping!', `Score ${Math.floor(score)}  ·  Coins ${coinsRun}`, 'Tap to play again');
+}
+
+function drawBackground(){
+  const grad = ctx.createRadialGradient(W * 0.5, H * 0.18, 10, W * 0.5, H * 0.48, H * 0.72);
+  grad.addColorStop(0, '#181069');
+  grad.addColorStop(0.62, '#070720');
+  grad.addColorStop(1, '#030310');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  stars.forEach(s => {
+    s.x -= cfg.speed * s.d * 0.18;
+    s.tw += 0.035;
+    if (s.x < -3) { s.x = W + 3; s.y = Math.random() * H; }
+    ctx.save();
+    ctx.globalAlpha = 0.34 + 0.46 * Math.abs(Math.sin(s.tw));
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  });
+
+  drawSprite('planet', W - 82 - (parallax * 0.05 % 40), 112, 118, 92, -0.08, 0.8);
+  ctx.save();
+  ctx.globalAlpha = 0.24;
+  ctx.fillStyle = '#3b2d8f';
+  ctx.beginPath();
+  ctx.ellipse(62, H - 30, 110, 44, -0.12, 0, Math.PI * 2);
+  ctx.ellipse(W - 42, H - 18, 94, 34, 0.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawGate(g){
+  const topH = Math.max(30, g.gapY - g.gap / 2);
+  const bottomY = g.gapY + g.gap / 2;
+  const bottomH = Math.max(30, H - bottomY);
+  drawSprite('topRock', g.x + g.w / 2, topH / 2 - 2, g.w * 1.36, topH + 34, 0, 1);
+  drawSprite('bottomRock', g.x + g.w / 2, bottomY + bottomH / 2 + 2, g.w * 1.36, bottomH + 34, 0, 1);
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,215,0,0.18)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 12]);
+  ctx.beginPath();
+  ctx.moveTo(g.x + g.w / 2, g.gapY - g.gap / 2 + 12);
+  ctx.lineTo(g.x + g.w / 2, g.gapY + g.gap / 2 - 12);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawPickup(p){
+  if (p.type === 'coin') {
+    drawSprite('coin', p.x, p.y, 46, 46, Math.sin(p.spin) * 0.12, 1);
+  } else if (p.type === 'boost') {
+    drawSprite('boost', p.x, p.y, 58, 58, Math.sin(p.spin) * 0.12, 1);
+  } else {
+    drawSprite(`moon${p.piece || 0}`, p.x, p.y, 56, 56, Math.sin(p.spin) * 0.16, 1);
+  }
+}
+
+function drawHazard(h){
+  drawSprite('hazard', h.x, h.y, 82, 48, -0.42, 1);
+}
+
+function drawPlayer(){
+  ctx.save();
+  ctx.translate(player.x, player.y);
+  ctx.rotate(player.angle);
+  drawSprite('astronaut', 0, 0, 88, 88, 0, 1);
+  if (boostTimer > 0) {
+    ctx.globalAlpha = 0.48 + 0.22 * Math.sin(frame * 0.28);
+    ctx.strokeStyle = '#72D7F5';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(0, 0, 38, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawBursts(){
+  bursts.forEach(b => {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, b.life);
+    ctx.textAlign = 'center';
+    ctx.font = `${Math.floor(24 * b.scale)}px 'Fredoka One', Arial`;
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = 'rgba(0,0,0,0.55)';
+    ctx.strokeText(b.text, b.x, b.y);
+    ctx.fillStyle = b.color;
+    ctx.fillText(b.text, b.x, b.y);
+    ctx.restore();
+  });
+}
+
+function drawOverlay(title, line, action){
+  ctx.save();
+  ctx.fillStyle = 'rgba(4,4,20,0.72)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = 'rgba(12,18,70,0.9)';
+  roundRect(55, H / 2 - 102, W - 110, 204, 24);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,215,0,0.72)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#FFD700';
+  ctx.font = "42px 'Fredoka One', Arial";
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = 'rgba(0,0,0,0.42)';
+  ctx.strokeText(title, W / 2, H / 2 - 38);
+  ctx.fillText(title, W / 2, H / 2 - 38);
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.font = "21px 'Fredoka One', Arial";
+  ctx.fillText(line, W / 2, H / 2 + 6);
+  ctx.fillStyle = '#72D7F5';
+  ctx.font = "17px 'Fredoka One', Arial";
+  ctx.fillText(action, W / 2, H / 2 + 45);
+  ctx.restore();
+}
+
+function drawSprite(name, cx, cy, dw, dh, angle = 0, alpha = 1){
+  if (!spritesReady || !SPRITES[name]) {
+    drawFallback(name, cx, cy, dw, dh, angle, alpha);
+    return;
+  }
+  const [col, row] = SPRITES[name];
+  const sw = spriteSheet.naturalWidth / 4;
+  const sh = spriteSheet.naturalHeight / 3;
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+  ctx.globalAlpha *= alpha;
+  ctx.drawImage(spriteSheet, col * sw, row * sh, sw, sh, -dw / 2, -dh / 2, dw, dh);
+  ctx.restore();
+}
+
+function drawFallback(name, cx, cy, dw, dh, angle, alpha){
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(angle);
+  ctx.globalAlpha *= alpha;
+  if (name === 'coin' || name === 'boost') {
+    ctx.fillStyle = name === 'boost' ? '#32ADE6' : '#FFD700';
+    ctx.beginPath();
+    ctx.arc(0, 0, Math.min(dw, dh) / 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = `${Math.floor(dw / 3)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(name === 'boost' ? 'x2' : '★', 0, 1);
+  } else if (name.startsWith('moon')) {
+    ctx.fillStyle = '#FFF2A8';
+    ctx.beginPath();
+    ctx.arc(0, 0, Math.min(dw, dh) / 2.4, 0.25, Math.PI * 1.55);
+    ctx.fill();
+  } else if (name === 'astronaut') {
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(0, 0, dw * 0.32, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#72D7F5';
+    ctx.beginPath();
+    ctx.arc(5, -4, dw * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.fillStyle = name === 'hazard' ? '#FFD700' : '#D85A30';
+    roundRect(-dw / 2, -dh / 2, dw, dh, 16);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function roundRect(x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+let actx;
+function tone(freq, dur, type = 'sine', volume = 0.12){
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const osc = actx.createOscillator();
+    const gain = actx.createGain();
+    osc.connect(gain);
+    gain.connect(actx.destination);
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(volume, actx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+    osc.start();
+    osc.stop(actx.currentTime + dur);
+  } catch(e) {}
+}
+function chime(){
+  [660, 880, 1100].forEach((f, i) => setTimeout(() => tone(f, 0.08, 'sine', 0.09), i * 70));
+}
+
+function loop(now){
+  const dt = Math.min(2.2, (now - lastTime) / 16.67 || 1);
+  lastTime = now;
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+modeButtons.forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
+canvas.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  try { canvas.setPointerCapture(e.pointerId); } catch(_) {}
+  jump();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'Enter') {
+    e.preventDefault();
+    jump();
+  }
+  if (e.key === '1') setMode('easy');
+  if (e.key === '2') setMode('hard');
+  if (e.key === '3') setMode('harder');
+});
+
+initStars();
+reset();
+requestAnimationFrame(loop);
+
+if (window.ArcadeAvatar) {
+  ArcadeAvatar.mountGuide({
+    rootId: 'jump-avatar-guide',
+    gameId: 'space-jump',
+    title: 'Space Jump Mission',
+    primaryLabel: 'Start jumping',
+    messages: [
+      'Pick Easy, Hard, or Harder before you launch.',
+      'Tap, click, or press Space to jump through the asteroid gaps.',
+      'Dodge shooting stars while you collect coins. Coins multiply the longer you fly.',
+      'Grab x2 powerups for extra coins, and collect 3 moon pieces to earn a bonus.'
+    ]
+  });
+}
+</script>
+</body>
+</html>
