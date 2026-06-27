@@ -63,6 +63,9 @@ header { text-align: center; margin-bottom: 8px; }
 .avatar-shop-row {
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
   margin: 16px 0 12px;
 }
 .avatar-shop-button {
@@ -83,6 +86,14 @@ header { text-align: center; margin-bottom: 8px; }
 .avatar-shop-button:active {
   transform: translateY(4px);
   box-shadow: 0 2px 0 #B06A00, 0 8px 20px rgba(0,0,0,0.24);
+}
+.my-avatar-button {
+  background: #32ADE6;
+  color: #042746;
+  box-shadow: 0 6px 0 #0877A8, 0 12px 28px rgba(0,0,0,0.28);
+}
+.my-avatar-button:active {
+  box-shadow: 0 2px 0 #0877A8, 0 8px 20px rgba(0,0,0,0.24);
 }
 .avatar-shop-modal {
   position: fixed;
@@ -134,6 +145,247 @@ header { text-align: center; margin-bottom: 8px; }
   line-height: 1;
 }
 body.avatar-shop-open { overflow: hidden; }
+
+.my-avatar-dialog { width: min(780px, 94vw); }
+.my-avatar-care {
+  display: grid;
+  gap: 16px;
+}
+.my-avatar-room {
+  position: relative;
+  overflow: hidden;
+  min-height: 250px;
+  border: 1px solid rgba(255,215,0,0.34);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255,215,0,0.24), transparent 15%),
+    radial-gradient(circle at 82% 18%, rgba(50,173,230,0.24), transparent 16%),
+    linear-gradient(180deg, rgba(20,20,70,0.95), rgba(8,9,30,0.98));
+  display: grid;
+  grid-template-columns: minmax(190px, 1fr) minmax(210px, 1fr);
+  gap: 14px;
+  align-items: end;
+  padding: 20px;
+}
+.my-avatar-room::before {
+  content: '';
+  position: absolute;
+  inset: auto -8% -24px;
+  height: 88px;
+  background: linear-gradient(180deg, #5e5872, #282445);
+  border-top: 4px solid rgba(255,255,255,0.2);
+}
+.my-avatar-stage {
+  position: relative;
+  z-index: 1;
+  min-height: 210px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 6px;
+}
+.my-avatar-bed {
+  position: absolute;
+  right: 10px;
+  bottom: 2px;
+  width: 128px;
+  height: 42px;
+  border-radius: 18px 18px 10px 10px;
+  background: linear-gradient(180deg, #7F77DD, #38327d);
+  border: 3px solid rgba(255,255,255,0.18);
+  box-shadow: 0 8px 0 rgba(0,0,0,0.22);
+}
+.my-avatar-bed.upgraded {
+  background: linear-gradient(180deg, #FFD700, #FF9500);
+  border-color: rgba(255,255,255,0.55);
+}
+.my-avatar-talk {
+  position: relative;
+  z-index: 1;
+  align-self: center;
+  background: white;
+  color: #333;
+  border-radius: 20px;
+  padding: 16px 18px;
+  min-height: 98px;
+  display: flex;
+  align-items: center;
+  font-size: 1.05rem;
+  line-height: 1.35;
+  box-shadow: 0 8px 22px rgba(0,0,0,0.22);
+}
+.my-avatar-talk::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  bottom: 26px;
+  border: 8px solid transparent;
+  border-right-color: white;
+}
+.care-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.care-stat {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 16px;
+  padding: 11px;
+}
+.care-stat-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: rgba(255,255,255,0.78);
+  font-size: 0.78rem;
+}
+.care-bar {
+  height: 10px;
+  margin-top: 8px;
+  background: rgba(0,0,0,0.32);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.care-bar span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #32ADE6, #FFD700);
+  transition: width 0.25s ease;
+}
+.care-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.care-action {
+  min-height: 94px;
+  border: 0;
+  border-radius: 18px;
+  padding: 12px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  color: #fff;
+  background: linear-gradient(180deg, #FF9500, #D85200);
+  box-shadow: 0 5px 0 rgba(0,0,0,0.32);
+}
+.care-action:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.32); }
+.care-action:disabled {
+  cursor: default;
+  transform: none;
+  opacity: 0.58;
+  box-shadow: none;
+}
+.care-action strong {
+  display: block;
+  font-size: 1.02rem;
+  margin-bottom: 6px;
+}
+.care-action span {
+  display: block;
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.86);
+}
+.care-action.feed { background: linear-gradient(180deg, #30C840, #118523); }
+.care-action.treat { background: linear-gradient(180deg, #FF2D55, #C41538); }
+.care-action.bed { background: linear-gradient(180deg, #7F77DD, #4438a6); }
+.trick-panel {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 12px;
+  align-items: stretch;
+}
+.trick-training,
+.trick-list {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 18px;
+  padding: 14px;
+}
+.trick-name {
+  color: #FFD700;
+  font-size: 1.18rem;
+  margin-bottom: 8px;
+}
+.trick-progress {
+  height: 12px;
+  background: rgba(0,0,0,0.34);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.trick-progress span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #AF52DE, #72D7F5, #FFD700);
+  transition: width 0.25s ease;
+}
+.trick-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.trick-btn {
+  font-family: inherit;
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 16px;
+  cursor: pointer;
+  color: #07203A;
+  background: #FFD700;
+}
+.trick-btn.secondary {
+  color: white;
+  background: rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.22);
+}
+.trick-btn:disabled { opacity: 0.5; cursor: default; }
+.trick-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 9px;
+}
+.trick-chip {
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 0.76rem;
+  background: rgba(255,255,255,0.12);
+  color: rgba(255,255,255,0.76);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+.trick-chip.learned {
+  background: rgba(48,200,64,0.22);
+  color: #C8FFD0;
+  border-color: rgba(48,200,64,0.42);
+}
+.my-avatar-stage.trick-wave [data-my-avatar-char] { animation: trickWave 0.75s ease-in-out; }
+.my-avatar-stage.trick-spin [data-my-avatar-char] { animation: trickSpin 0.85s ease-in-out; }
+.my-avatar-stage.trick-moonwalk [data-my-avatar-char] { animation: trickMoonwalk 0.95s ease-in-out; }
+.my-avatar-stage.trick-rocket [data-my-avatar-char] { animation: trickRocket 0.85s ease-in-out; }
+@keyframes trickWave {
+  0%,100% { transform: rotate(0deg); }
+  25% { transform: rotate(-7deg); }
+  55% { transform: rotate(7deg); }
+}
+@keyframes trickSpin {
+  0% { transform: rotate(0deg) scale(1); }
+  55% { transform: rotate(360deg) scale(1.08); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+@keyframes trickMoonwalk {
+  0%,100% { transform: translateX(0); }
+  30% { transform: translateX(-22px); }
+  65% { transform: translateX(16px); }
+}
+@keyframes trickRocket {
+  0%,100% { transform: translateY(0); }
+  45% { transform: translateY(-28px) rotate(-3deg); }
+}
 
 .hint { text-align: center; font-size: 0.95rem; color: rgba(255,255,255,0.6); margin: 8px 0 22px; }
 
@@ -197,6 +449,11 @@ footer { text-align: center; margin-top: 34px; }
   .avatar-shop-modal { align-items: flex-end; padding: 12px; }
   .avatar-shop-dialog { max-height: 86vh; padding: 14px; border-radius: 20px; }
   .avatar-shop-title { font-size: 1.22rem; }
+  .my-avatar-room { grid-template-columns: 1fr; min-height: 0; padding: 16px; }
+  .my-avatar-stage { min-height: 190px; }
+  .my-avatar-talk::before { display: none; }
+  .care-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .care-actions, .trick-panel { grid-template-columns: 1fr; }
   .card-icon { font-size: 3rem; }
 }
 </style>
@@ -225,6 +482,9 @@ footer { text-align: center; margin-top: 34px; }
     <button class="avatar-shop-button" id="avatar-shop-open" type="button" aria-haspopup="dialog" aria-controls="avatar-shop-modal">
       <span>🧑‍🚀</span><span>Avatar Shop</span>
     </button>
+    <button class="avatar-shop-button my-avatar-button" id="my-avatar-open" type="button" aria-haspopup="dialog" aria-controls="my-avatar-modal">
+      <span>🌟</span><span>My Avatar</span>
+    </button>
   </div>
   <div class="avatar-shop-modal" id="avatar-shop-modal" hidden>
     <div class="avatar-shop-dialog" role="dialog" aria-modal="true" aria-labelledby="avatar-shop-title">
@@ -233,6 +493,73 @@ footer { text-align: center; margin-top: 34px; }
         <button class="avatar-shop-close" id="avatar-shop-close" type="button" aria-label="Close avatar shop">×</button>
       </div>
       <div id="home-avatar-shop"></div>
+    </div>
+  </div>
+  <div class="avatar-shop-modal" id="my-avatar-modal" hidden>
+    <div class="avatar-shop-dialog my-avatar-dialog" role="dialog" aria-modal="true" aria-labelledby="my-avatar-title">
+      <div class="avatar-shop-head">
+        <div class="avatar-shop-title" id="my-avatar-title">🌟 My Avatar</div>
+        <button class="avatar-shop-close" id="my-avatar-close" type="button" aria-label="Close my avatar">×</button>
+      </div>
+      <div class="my-avatar-care">
+        <div class="my-avatar-room">
+          <div class="my-avatar-stage" id="my-avatar-stage">
+            <div class="my-avatar-bed" id="my-avatar-bed"></div>
+            <div data-my-avatar-char></div>
+            <div data-my-avatar-pet></div>
+          </div>
+          <div class="my-avatar-talk" id="my-avatar-talk">Ready for a space day.</div>
+        </div>
+
+        <div class="care-stats">
+          <div class="care-stat">
+            <div class="care-stat-label"><span>Energy</span><span id="care-energy-val">0</span></div>
+            <div class="care-bar"><span id="care-energy-bar"></span></div>
+          </div>
+          <div class="care-stat">
+            <div class="care-stat-label"><span>Hunger</span><span id="care-hunger-val">0</span></div>
+            <div class="care-bar"><span id="care-hunger-bar"></span></div>
+          </div>
+          <div class="care-stat">
+            <div class="care-stat-label"><span>Happiness</span><span id="care-happy-val">0</span></div>
+            <div class="care-bar"><span id="care-happy-bar"></span></div>
+          </div>
+          <div class="care-stat">
+            <div class="care-stat-label"><span>Tricks</span><span id="care-tricks-val">0/4</span></div>
+            <div class="care-bar"><span id="care-tricks-bar"></span></div>
+          </div>
+        </div>
+
+        <div class="care-actions">
+          <button class="care-action feed" id="feed-avatar" type="button">
+            <strong>🍎 Food</strong>
+            <span>Spend 5⭐</span>
+          </button>
+          <button class="care-action treat" id="treat-avatar" type="button">
+            <strong>🍬 Treat</strong>
+            <span>Spend 10⭐</span>
+          </button>
+          <button class="care-action bed" id="bed-avatar" type="button">
+            <strong>🛏️ Better Bed</strong>
+            <span>Spend 45⭐</span>
+          </button>
+        </div>
+
+        <div class="trick-panel">
+          <div class="trick-training">
+            <div class="trick-name" id="next-trick-name">Next trick</div>
+            <div class="trick-progress"><span id="trick-progress-bar"></span></div>
+            <div class="trick-buttons">
+              <button class="trick-btn" id="train-trick" type="button">Train Trick</button>
+              <button class="trick-btn secondary" id="show-trick" type="button">Show Trick</button>
+            </div>
+          </div>
+          <div class="trick-list">
+            <div class="care-stat-label"><span>Learned tricks</span><span id="trick-boost-val">No treat boost</span></div>
+            <div class="trick-chip-row" id="trick-chip-row"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -364,6 +691,255 @@ function refreshAvatarShop(){
   if (window.ArcadeAvatar && avatarShopMounted) ArcadeAvatar.refreshShop('home-avatar-shop');
 }
 
+const CARE_TRICKS = [
+  { id:'wave', name:'Wave', emoji:'👋' },
+  { id:'spin', name:'Spin', emoji:'🌀' },
+  { id:'moonwalk', name:'Moonwalk', emoji:'🌙' },
+  { id:'rocket', name:'Rocket Pose', emoji:'🚀' },
+];
+const CARE_COSTS = { food:5, treat:10, bed:45 };
+const myAvatarModal = document.getElementById('my-avatar-modal');
+const myAvatarOpen = document.getElementById('my-avatar-open');
+const myAvatarClose = document.getElementById('my-avatar-close');
+const myAvatarStage = document.getElementById('my-avatar-stage');
+let trickShowIndex = 0;
+
+function clamp(n, min = 0, max = 100){
+  return Math.max(min, Math.min(max, n));
+}
+
+function careNumber(value, fallback){
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function normalizeCare(raw){
+  const knownTricks = CARE_TRICKS.map(t => t.id);
+  const tricks = Array.isArray(raw && raw.tricks)
+    ? raw.tricks.filter(id => knownTricks.includes(id))
+    : [];
+  let trickIndex = Math.round(careNumber(raw && raw.trickIndex, tricks.length));
+  trickIndex = clamp(trickIndex, 0, CARE_TRICKS.length);
+  while (trickIndex < CARE_TRICKS.length && tricks.includes(CARE_TRICKS[trickIndex].id)) trickIndex++;
+  return {
+    energy: clamp(careNumber(raw && raw.energy, 78)),
+    hunger: clamp(careNumber(raw && raw.hunger, 74)),
+    happiness: clamp(careNumber(raw && raw.happiness, 72)),
+    tricks: Array.from(new Set(tricks)),
+    trickIndex,
+    trickProgress: clamp(careNumber(raw && raw.trickProgress, 0)),
+    bedLevel: raw && raw.bedLevel ? 1 : 0,
+    treatBoost: Math.max(0, Math.round(careNumber(raw && raw.treatBoost, 0))),
+    lastUpdated: careNumber(raw && raw.lastUpdated, Date.now()),
+    lastBonusDay: raw && raw.lastBonusDay ? String(raw.lastBonusDay) : '',
+    lastMessage: raw && raw.lastMessage ? String(raw.lastMessage) : ''
+  };
+}
+
+function readAvatarCare(bank){
+  const care = normalizeCare((bank || arcadeLoad()).avatarCare);
+  const now = Date.now();
+  const elapsedMinutes = Math.min(1440, Math.max(0, (now - care.lastUpdated) / 60000));
+  if (elapsedMinutes > 0) {
+    const bedRate = care.bedLevel ? 0.24 : 0.12;
+    care.energy = clamp(care.energy + elapsedMinutes * bedRate);
+    care.hunger = clamp(care.hunger - elapsedMinutes * 0.035);
+    care.happiness = clamp(care.happiness - elapsedMinutes * 0.025);
+  }
+  care.lastUpdated = now;
+  return care;
+}
+
+function saveAvatarCare(bank, care){
+  bank.avatarCare = {
+    energy: Math.round(clamp(care.energy)),
+    hunger: Math.round(clamp(care.hunger)),
+    happiness: Math.round(clamp(care.happiness)),
+    tricks: care.tricks.slice(),
+    trickIndex: clamp(care.trickIndex, 0, CARE_TRICKS.length),
+    trickProgress: Math.round(clamp(care.trickProgress)),
+    bedLevel: care.bedLevel ? 1 : 0,
+    treatBoost: Math.max(0, Math.round(care.treatBoost || 0)),
+    lastUpdated: Date.now(),
+    lastBonusDay: care.lastBonusDay || '',
+    lastMessage: care.lastMessage || ''
+  };
+  arcadeSave(bank);
+}
+
+function careMood(care, mood){
+  if (mood) return mood;
+  if (care.hunger < 24 || care.energy < 18) return 'sad';
+  if (care.happiness < 30) return 'thinking';
+  return 'happy';
+}
+
+function careDefaultMessage(care){
+  if (care.lastMessage) return care.lastMessage;
+  if (care.hunger < 24) return 'I could use a snack before my next mission.';
+  if (care.energy < 20) return 'A little rest would help me practice better.';
+  if (care.happiness < 30) return 'A treat or trick practice would cheer me up.';
+  return 'Ready for a space day.';
+}
+
+function todayKey(){
+  return new Date().toISOString().slice(0, 10);
+}
+
+function maybeDailyCareBonus(bank, care){
+  if (care.lastBonusDay === todayKey()) return '';
+  if (care.hunger < 80 || care.happiness < 80) return '';
+  care.lastBonusDay = todayKey();
+  bank.coins = (bank.coins || 0) + 5;
+  bank.earned = (bank.earned || 0) + 5;
+  return ' Daily care bonus: +5⭐!';
+}
+
+function updateCareBar(valueId, barId, value){
+  const rounded = Math.round(clamp(value));
+  document.getElementById(valueId).textContent = rounded;
+  document.getElementById(barId).style.width = `${rounded}%`;
+}
+
+function refreshMyAvatar(message, mood){
+  if (!window.ArcadeAvatar || !myAvatarModal || myAvatarModal.hidden) return;
+  const bank = arcadeLoad();
+  const care = readAvatarCare(bank);
+  saveAvatarCare(bank, care);
+  const avatarState = ArcadeAvatar.getState();
+  ArcadeAvatar.drawChar(document.querySelector('[data-my-avatar-char]'), careMood(care, mood), 132, avatarState.char);
+  ArcadeAvatar.drawPet(document.querySelector('[data-my-avatar-pet]'), careMood(care, mood), 76, avatarState.char);
+
+  document.getElementById('my-avatar-talk').textContent = message || careDefaultMessage(care);
+  document.getElementById('my-avatar-bed').classList.toggle('upgraded', care.bedLevel > 0);
+  updateCareBar('care-energy-val', 'care-energy-bar', care.energy);
+  updateCareBar('care-hunger-val', 'care-hunger-bar', care.hunger);
+  updateCareBar('care-happy-val', 'care-happy-bar', care.happiness);
+  document.getElementById('care-tricks-val').textContent = `${care.tricks.length}/${CARE_TRICKS.length}`;
+  document.getElementById('care-tricks-bar').style.width = `${Math.round(care.tricks.length / CARE_TRICKS.length * 100)}%`;
+
+  const nextTrick = CARE_TRICKS[care.trickIndex];
+  document.getElementById('next-trick-name').textContent = nextTrick
+    ? `${nextTrick.emoji} Learn ${nextTrick.name}`
+    : 'All tricks learned!';
+  document.getElementById('trick-progress-bar').style.width = nextTrick ? `${Math.round(care.trickProgress)}%` : '100%';
+  document.getElementById('trick-boost-val').textContent = care.treatBoost > 0
+    ? `${care.treatBoost} treat boost${care.treatBoost === 1 ? '' : 's'}`
+    : 'No treat boost';
+  document.getElementById('bed-avatar').disabled = care.bedLevel > 0;
+  document.getElementById('bed-avatar').querySelector('span').textContent = care.bedLevel > 0 ? 'Comfy bed owned' : `Spend ${CARE_COSTS.bed}⭐`;
+  document.getElementById('train-trick').disabled = !nextTrick || care.energy < 18;
+  document.getElementById('show-trick').disabled = care.tricks.length === 0;
+
+  const chips = document.getElementById('trick-chip-row');
+  chips.innerHTML = '';
+  CARE_TRICKS.forEach(trick => {
+    const chip = document.createElement('span');
+    chip.className = 'trick-chip' + (care.tricks.includes(trick.id) ? ' learned' : '');
+    chip.textContent = `${trick.emoji} ${trick.name}`;
+    chips.appendChild(chip);
+  });
+}
+
+function spendStars(bank, amount){
+  if ((bank.coins || 0) < amount) {
+    toast('Not enough stars yet! ⭐');
+    return false;
+  }
+  bank.coins = (bank.coins || 0) - amount;
+  return true;
+}
+
+function commitCareAction(bank, care, message, mood){
+  care.lastMessage = message;
+  saveAvatarCare(bank, care);
+  render();
+  refreshAvatarShop();
+  refreshMyAvatar(message, mood);
+}
+
+function feedAvatar(){
+  const bank = arcadeLoad();
+  const care = readAvatarCare(bank);
+  if (!spendStars(bank, CARE_COSTS.food)) return;
+  care.hunger = clamp(care.hunger + 30);
+  care.energy = clamp(care.energy + 6);
+  care.happiness = clamp(care.happiness + 5);
+  const bonus = maybeDailyCareBonus(bank, care);
+  commitCareAction(bank, care, `Crunchy space food! Hunger is topped up.${bonus}`, 'happy');
+}
+
+function treatAvatar(){
+  const bank = arcadeLoad();
+  const care = readAvatarCare(bank);
+  if (!spendStars(bank, CARE_COSTS.treat)) return;
+  care.hunger = clamp(care.hunger + 10);
+  care.happiness = clamp(care.happiness + 24);
+  care.treatBoost += 1;
+  const bonus = maybeDailyCareBonus(bank, care);
+  commitCareAction(bank, care, `Treat boost ready for trick training.${bonus}`, 'excited');
+}
+
+function buyBetterBed(){
+  const bank = arcadeLoad();
+  const care = readAvatarCare(bank);
+  if (care.bedLevel > 0) return;
+  if (!spendStars(bank, CARE_COSTS.bed)) return;
+  care.bedLevel = 1;
+  care.energy = clamp(care.energy + 34);
+  care.happiness = clamp(care.happiness + 10);
+  commitCareAction(bank, care, 'New bed installed. Energy comes back faster now.', 'happy');
+}
+
+function trainTrick(){
+  const bank = arcadeLoad();
+  const care = readAvatarCare(bank);
+  const nextTrick = CARE_TRICKS[care.trickIndex];
+  if (!nextTrick) {
+    commitCareAction(bank, care, 'Every trick is learned. Time for a victory pose!', 'excited');
+    return;
+  }
+  if (care.energy < 18) {
+    care.lastMessage = 'Too sleepy to train. Rest or try the better bed.';
+    saveAvatarCare(bank, care);
+    refreshMyAvatar(care.lastMessage, 'sad');
+    return;
+  }
+  const boosted = care.treatBoost > 0;
+  care.energy = clamp(care.energy - 18);
+  care.happiness = clamp(care.happiness + 8);
+  care.trickProgress = clamp(care.trickProgress + (boosted ? 44 : 28));
+  if (boosted) care.treatBoost -= 1;
+
+  let message = boosted ? 'Treat boost made training sparkle.' : 'Great practice session.';
+  let mood = 'happy';
+  if (care.trickProgress >= 100) {
+    care.tricks.push(nextTrick.id);
+    care.tricks = Array.from(new Set(care.tricks));
+    care.trickIndex = clamp(care.trickIndex + 1, 0, CARE_TRICKS.length);
+    care.trickProgress = 0;
+    message = `New trick learned: ${nextTrick.name}!`;
+    mood = 'excited';
+  }
+  const bonus = maybeDailyCareBonus(bank, care);
+  commitCareAction(bank, care, `${message}${bonus}`, mood);
+}
+
+function showLearnedTrick(){
+  const bank = arcadeLoad();
+  const care = readAvatarCare(bank);
+  if (!care.tricks.length) return;
+  const trickId = care.tricks[trickShowIndex % care.tricks.length];
+  trickShowIndex++;
+  const trick = CARE_TRICKS.find(t => t.id === trickId) || CARE_TRICKS[0];
+  myAvatarStage.classList.remove('trick-wave', 'trick-spin', 'trick-moonwalk', 'trick-rocket');
+  void myAvatarStage.offsetWidth;
+  myAvatarStage.classList.add(`trick-${trick.id}`);
+  care.happiness = clamp(care.happiness + 3);
+  commitCareAction(bank, care, `${trick.emoji} ${trick.name}!`, 'excited');
+  setTimeout(() => myAvatarStage.classList.remove(`trick-${trick.id}`), 950);
+}
+
 function openAvatarShop(){
   ensureAvatarShop();
   refreshAvatarShop();
@@ -378,13 +954,28 @@ function closeAvatarShop(){
   avatarShopOpen.focus();
 }
 
+function openMyAvatar(){
+  refreshMyAvatar();
+  myAvatarModal.hidden = false;
+  document.body.classList.add('avatar-shop-open');
+  refreshMyAvatar();
+  myAvatarClose.focus();
+}
+
+function closeMyAvatar(){
+  myAvatarModal.hidden = true;
+  document.body.classList.remove('avatar-shop-open');
+  myAvatarOpen.focus();
+}
+
 function resetAll(){
-  if (!confirm('Reset ALL stars, unlocks and dress-up items? This cannot be undone.')) return;
+  if (!confirm('Reset ALL stars, unlocks, avatar care and dress-up items? This cannot be undone.')) return;
   localStorage.removeItem(ARCADE_KEY);
   localStorage.removeItem('mathStars');
   const b = {}; b.migrated = true; arcadeSave(b);
   render();
   refreshAvatarShop();
+  refreshMyAvatar();
   toast('Progress reset. Fresh start! 🌟');
 }
 
@@ -422,19 +1013,33 @@ avatarShopClose.addEventListener('click', closeAvatarShop);
 avatarShopModal.addEventListener('click', e => {
   if (e.target === avatarShopModal) closeAvatarShop();
 });
+myAvatarOpen.addEventListener('click', openMyAvatar);
+myAvatarClose.addEventListener('click', closeMyAvatar);
+myAvatarModal.addEventListener('click', e => {
+  if (e.target === myAvatarModal) closeMyAvatar();
+});
+document.getElementById('feed-avatar').addEventListener('click', feedAvatar);
+document.getElementById('treat-avatar').addEventListener('click', treatAvatar);
+document.getElementById('bed-avatar').addEventListener('click', buyBetterBed);
+document.getElementById('train-trick').addEventListener('click', trainTrick);
+document.getElementById('show-trick').addEventListener('click', showLearnedTrick);
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !avatarShopModal.hidden) closeAvatarShop();
+  if (e.key !== 'Escape') return;
+  if (!myAvatarModal.hidden) closeMyAvatar();
+  else if (!avatarShopModal.hidden) closeAvatarShop();
 });
 // Refresh when returning to the tab (stars earned in a game)
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
     render();
     refreshAvatarShop();
+    refreshMyAvatar();
   }
 });
 window.addEventListener('focus', () => {
   render();
   refreshAvatarShop();
+  refreshMyAvatar();
 });
 </script>
 </body>
