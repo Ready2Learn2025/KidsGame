@@ -243,7 +243,7 @@ let spritesReady = false;
 spriteSheet.onload = () => { spritesReady = true; };
 spriteSheet.src = 'assets/land-jump-sprites.png';
 
-const player = { x: 112, y: GROUND_Y, vy: 0, w: 70, h: 82, onGround: true, bob: 0 };
+const player = { x: 112, y: GROUND_Y, vy: 0, w: 70, h: 82, onGround: true, bob: 0, maxJumps: 3, jumpsLeft: 3 };
 let activeMode = 'easy';
 let cfg = MODES[activeMode];
 let state = 'ready';
@@ -295,6 +295,7 @@ function reset(){
   player.vy = 0;
   player.onGround = true;
   player.bob = 0;
+  player.jumpsLeft = player.maxJumps;
   state = 'ready';
   score = 0;
   coinsRun = 0;
@@ -308,7 +309,7 @@ function reset(){
   flashTimer = 0;
   best = getBest(activeMode);
   updateHUD();
-  statusEl.textContent = `${cfg.label} mode ready. Jump over meteors and collect coins.`;
+  statusEl.textContent = `${cfg.label} mode ready. Triple jump over meteors and collect coins.`;
 }
 
 function updateHUD(){
@@ -319,9 +320,10 @@ function updateHUD(){
   multEl.textContent = `x${coinMultiplier()}`;
   bestEl.textContent = Math.max(best, scoreInt);
   if (state === 'playing') {
+    const jumpText = player.onGround ? 'Triple jump ready.' : `${player.jumpsLeft} air jump${player.jumpsLeft === 1 ? '' : 's'} left.`;
     statusEl.textContent = boostTimer > 0
-      ? `Coin boost active: x${coinMultiplier()} coins.`
-      : `Jump over meteors. Coins are x${baseMultiplier()} now.`;
+      ? `Coin boost active: x${coinMultiplier()} coins. ${jumpText}`
+      : `Jump over meteors. Coins are x${baseMultiplier()} now. ${jumpText}`;
   }
 }
 
@@ -346,11 +348,15 @@ function jump(){
     state = 'playing';
     meteorTimer = cfg.firstMeteor;
   }
-  if (!player.onGround) return;
-  player.vy = cfg.jump;
+  if (player.jumpsLeft <= 0) return;
+  const jumpNumber = player.maxJumps - player.jumpsLeft + 1;
+  const jumpPower = jumpNumber === 1 ? cfg.jump : cfg.jump * (jumpNumber === 2 ? 0.88 : 0.78);
+  player.vy = jumpPower;
   player.onGround = false;
-  burst(player.x - 18, player.y - 22, 'jump', '#72D7F5');
-  tone(540, 0.055, 'sine', 0.08);
+  player.jumpsLeft--;
+  const label = jumpNumber === 1 ? 'jump' : jumpNumber === 2 ? 'double' : 'triple';
+  burst(player.x - 18, player.y - 22, label, '#72D7F5');
+  tone(540 + jumpNumber * 70, 0.055, 'sine', 0.08);
 }
 
 function spawnMeteor(){
@@ -397,6 +403,7 @@ function update(dt){
     player.y = GROUND_Y;
     player.vy = 0;
     player.onGround = true;
+    player.jumpsLeft = player.maxJumps;
   }
 
   meteorTimer -= dt;
@@ -480,7 +487,7 @@ function draw(){
     ctx.fillStyle = `rgba(255,60,80,${0.16 * (flashTimer / 16)})`;
     ctx.fillRect(0, 0, W, H);
   }
-  if (state === 'ready') drawOverlay('Land Jump', `${cfg.label} mode`, 'Tap, click, or press Space');
+  if (state === 'ready') drawOverlay('Land Jump', `${cfg.label} mode`, 'Tap up to 3 times');
   if (state === 'over') drawOverlay('Nice jumping!', `Score ${Math.floor(score)}  ·  Coins ${coinsRun}`, 'Tap to play again');
 }
 
@@ -512,10 +519,16 @@ function drawBackground(){
 
 function drawGround(){
   ctx.save();
+  ctx.fillStyle = '#b7aea3';
+  ctx.fillRect(0, GROUND_Y + 8, W, 58);
+  ctx.fillStyle = '#524a62';
+  ctx.fillRect(0, GROUND_Y + 58, W, H - GROUND_Y);
+  ctx.fillStyle = 'rgba(255,255,255,0.18)';
+  ctx.fillRect(0, GROUND_Y + 8, W, 5);
   ctx.fillStyle = '#2a2550';
   ctx.fillRect(0, GROUND_Y + 36, W, H - GROUND_Y);
-  for (let x = -180 + groundOffset; x < W + 190; x += 170) {
-    drawSprite('ground', x, GROUND_Y + 44, 180, 98, 0, 1);
+  for (let x = -170 + groundOffset; x < W + 210; x += 118) {
+    drawSprite('ground', x, GROUND_Y + 44, 240, 128, 0, 1);
   }
   ctx.restore();
 }
@@ -526,13 +539,13 @@ function drawPickup(p){
 }
 
 function drawMeteor(m){
-  drawSprite(m.small ? 'smallMeteor' : 'meteor', m.x, m.y, m.small ? 72 : 96, m.small ? 44 : 60, m.rot, 1);
+  drawSprite(m.small ? 'smallMeteor' : 'meteor', m.x, m.y, m.small ? 104 : 138, m.small ? 62 : 86, m.rot, 1);
 }
 
 function drawPlayer(){
   const sprite = player.onGround ? 'run' : 'jump';
   const bob = player.onGround ? Math.sin(player.bob) * 2.5 : 0;
-  drawSprite(sprite, player.x, player.y - 44 + bob, 92, 92, player.onGround ? 0 : -0.08, 1);
+  drawSprite(sprite, player.x, player.y - 50 + bob, 150, 150, player.onGround ? 0 : -0.08, 1);
   if (boostTimer > 0) {
     ctx.save();
     ctx.globalAlpha = 0.46 + 0.2 * Math.sin(frame * 0.26);
@@ -706,6 +719,7 @@ if (window.ArcadeAvatar) {
     messages: [
       'Pick Easy, Hard, or Harder before you start.',
       'Tap, click, or press Space to jump over meteors flying toward you.',
+      'You can jump three times before landing: jump, double jump, then triple jump.',
       'Collect coins while you run. The longer you last, the more each coin is worth.',
       'Grab x2 powerups for a short coin boost.'
     ]

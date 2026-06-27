@@ -65,6 +65,7 @@ Current goal: make the dressed-up avatar a universal guide across the arcade.
 - Land Jump:
   - Add a ground-based jumping game with Easy, Hard, and Harder modes.
   - Add incoming meteors, coin collection, coin multipliers over time, and x2 coin powerups.
+  - Enable jump, double jump, and triple jump before landing.
 - Cosmic Pong:
   - Fix the iOS web issue where the player cannot get past the "move your mouse up and down" start instruction.
 - Color Ship:
