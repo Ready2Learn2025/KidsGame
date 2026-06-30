@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <script src="ios-app.js"></script>
+<script src="arcade-core.js"></script>
 <script src="avatar.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 <title>Math Stars Adventure!</title>
@@ -508,6 +509,7 @@ body {
 const G = {
   score:0, qNum:0, current:null, answered:false,
   hintTick:null, timerTick:null, timeLeft:0, shopFrom:'title', difficulty:'easy',
+  completionRecorded:false,
   char:{ color:'red', hat:'none', outfit:'none', pet:'none' }
 };
 const PTS = { easy:5, hard:10, harder:20 };
@@ -870,6 +872,7 @@ function startQuestionClock(){
     requestAnimationFrame(()=>{ fill.style.transition=`width ${limit}s linear`; fill.style.width='0%'; });
     G.timerTick=setInterval(()=>{
       if(G.answered){clearQuestionTimers();return;}
+      if(window.ArcadeCore && ArcadeCore.isPaused()) return;
       G.timeLeft--;
       updateTimerUI();
       if(G.timeLeft<=0) timeFail();
@@ -880,6 +883,7 @@ function startQuestionClock(){
   let secs=0; const LIMIT=14;
   G.hintTick=setInterval(()=>{
     if(G.answered){clearInterval(G.hintTick);return;}
+    if(window.ArcadeCore && ArcadeCore.isPaused()) return;
     secs++;
     fill.style.transition='width 1s linear';
     fill.style.width=Math.max(0,100-secs/LIMIT*100)+'%';
@@ -903,12 +907,17 @@ function updateTimerUI(){
 }
 
 function checkAnswer(choice,btn){
+  if(window.ArcadeCore && ArcadeCore.isPaused()) return;
   if(G.answered)return;
   G.answered=true; clearQuestionTimers();
   const pts=PTS[G.difficulty];
   if(choice===G.current.ans){
     btn.classList.add('correct');
     G.score+=pts; bankEarned(pts); updateScores();
+    if (!G.completionRecorded && window.ArcadeCore) {
+      G.completionRecorded = true;
+      ArcadeCore.completeGame('math-adventure', { difficulty:G.difficulty, score:G.score });
+    }
     document.getElementById('bubble').textContent=pick(MSGS.correct);
     drawChar('game-char','excited'); drawPet('game-pet','excited');
     anim('game-char','bounce'); burst(btn); setTimeout(showCelebration,550);
@@ -1028,9 +1037,9 @@ function toast(msg){
 
 // ── SHARED ARCADE BANK ──
 const ARCADE_KEY='masonArcade';
-function arcadeLoad(){ try{ return JSON.parse(localStorage.getItem(ARCADE_KEY))||{}; }catch(e){ return {}; } }
-function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
-function bankEarned(n){ const b=arcadeLoad(); b.earned=(b.earned||0)+n; arcadeSave(b); }
+function arcadeLoad(){ if (window.ArcadeCore) return ArcadeCore.load(); try{ return JSON.parse(localStorage.getItem(ARCADE_KEY))||{}; }catch(e){ return {}; } }
+function arcadeSave(b){ if (window.ArcadeCore) return ArcadeCore.save(b); localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
+function bankEarned(n){ if (window.ArcadeCore) return ArcadeCore.earnStars(n); const b=arcadeLoad(); b.earned=(b.earned||0)+n; arcadeSave(b); }
 // One-time migration from the old standalone save
 (function migrate(){
   const b=arcadeLoad(); if(b.migrated) return;

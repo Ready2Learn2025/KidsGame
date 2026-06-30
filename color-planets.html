@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <script src="ios-app.js"></script>
+<script src="arcade-core.js"></script>
 <script src="avatar.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 <title>Color Planets!</title>
@@ -110,9 +111,9 @@
 <script>
 // ── SHARED ARCADE BANK ──
 const ARCADE_KEY='masonArcade';
-function arcadeLoad(){ try{ return JSON.parse(localStorage.getItem(ARCADE_KEY))||{}; }catch(e){ return {}; } }
-function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
-function arcadeEarn(n){ const b=arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(b.earned||0)+n; arcadeSave(b); }
+function arcadeLoad(){ if (window.ArcadeCore) return ArcadeCore.load(); try{ return JSON.parse(localStorage.getItem(ARCADE_KEY))||{}; }catch(e){ return {}; } }
+function arcadeSave(b){ if (window.ArcadeCore) return ArcadeCore.save(b); localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
+function arcadeEarn(n){ if (window.ArcadeCore) return ArcadeCore.earnStars(n); const b=arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(b.earned||0)+n; arcadeSave(b); }
 
 const PALETTE = [
   { id:'red',    c:'#FF3B30' },
@@ -129,6 +130,7 @@ const bestEl = document.getElementById('best');
 const SIZE = 62, FLOOR_OFFSET = 110; // keep planets above the bins
 let planets = [], sorted = 0, selected = null, best = getBest();
 let drag = null; // {planet, offX, offY, moved}
+let completionRecorded = false;
 bestEl.textContent = best;
 
 function getBest(){
@@ -154,7 +156,10 @@ PALETTE.forEach(p=>{
   const bin=document.createElement('div');
   bin.className='bin'; bin.style.borderColor=p.c; bin.dataset.color=p.id;
   bin.innerHTML=`<div class="swatch" style="background:${p.c}"></div>`;
-  bin.addEventListener('pointerup', ()=>{ if (selected) resolve(selected, p.id); });
+  bin.addEventListener('pointerup', ()=>{
+    if (window.ArcadeCore && ArcadeCore.isPaused()) return;
+    if (selected) resolve(selected, p.id);
+  });
   binsEl.appendChild(bin);
 });
 
@@ -162,6 +167,7 @@ function fieldRect(){ return field.getBoundingClientRect(); }
 function maxY(){ return field.clientHeight - FLOOR_OFFSET - SIZE; }
 
 function spawn(){
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   if (planets.length >= 6) return;
   const p = PALETTE[Math.floor(Math.random()*PALETTE.length)];
   const el = document.createElement('div');
@@ -175,6 +181,7 @@ function spawn(){
 }
 
 function onGrab(e, obj){
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   e.preventDefault();
   const r = obj.el.getBoundingClientRect(), fr = fieldRect();
   drag = { planet:obj, offX:e.clientX-r.left, offY:e.clientY-r.top, moved:false };
@@ -183,6 +190,7 @@ function onGrab(e, obj){
 }
 
 field.addEventListener('pointermove', e=>{
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   if (!drag) return;
   const fr = fieldRect();
   let nx = e.clientX - fr.left - drag.offX;
@@ -196,6 +204,7 @@ field.addEventListener('pointermove', e=>{
 });
 
 window.addEventListener('pointerup', e=>{
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   clearBinHi();
   if (!drag) return;
   const obj = drag.planet;
@@ -238,6 +247,10 @@ function resolve(obj, binId){
   if (obj.color === binId){
     obj.removed = true;
     sorted++; sortedEl.textContent = sorted; arcadeEarn(1);
+    if (!completionRecorded && window.ArcadeCore) {
+      completionRecorded = true;
+      ArcadeCore.completeGame('color-planets', { score:sorted });
+    }
     if (sorted > best) { best = sorted; bestEl.textContent = best; saveBest(best); }
     floatStar(obj);
     obj.el.classList.add('gone');
@@ -260,6 +273,7 @@ function floatStar(obj){
 
 // fall loop
 function loop(){
+  if (window.ArcadeCore && ArcadeCore.isPaused()) { requestAnimationFrame(loop); return; }
   const my = maxY();
   planets.forEach(o=>{
     if (o.held || o.removed) return;
@@ -291,6 +305,7 @@ if (window.ArcadeAvatar) {
 // sounds
 let actx;
 function tone(f,d,type='sine',v=0.15){
+  if (window.ArcadeCore && ArcadeCore.isMuted()) return;
   try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)();
     const o=actx.createOscillator(), g=actx.createGain();
     o.connect(g); g.connect(actx.destination); o.type=type; o.frequency.value=f;

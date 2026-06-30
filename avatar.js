@@ -63,6 +63,7 @@
   const BODY = {red:'#FF3B30',orange:'#FF9500',yellow:'#FFD700',blue:'#007AFF',green:'#34C759',purple:'#AF52DE',pink:'#FF2D55',teal:'#32ADE6',gold:'#FFB700'};
   const mounts = {};
   const guideMounts = {};
+  const guideByGame = {};
 
   function arcadeLoad(){ try { return JSON.parse(localStorage.getItem(ARCADE_KEY)) || {}; } catch(e){ return {}; } }
   function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
@@ -535,6 +536,12 @@
     renderGuide(ctx);
     ctx.root.hidden = false;
   }
+  function showGuideForGame(gameId){
+    const rootId = guideByGame[gameId];
+    if (!rootId) return false;
+    showGuide(rootId);
+    return true;
+  }
   function hideGuide(rootId){
     const ctx = guideMounts[rootId]; if (!ctx) return;
     ctx.root.hidden = true;
@@ -571,12 +578,15 @@
         <button class="avatar-guide-btn primary" data-guide-primary type="button">Got it</button>
       </div>
     </div>`;
-    const help = document.createElement('button');
-    help.className = 'avatar-guide-help';
-    help.type = 'button';
-    help.setAttribute('aria-label', 'Show game help');
-    help.textContent = '?';
-    document.body.appendChild(help);
+    let help = null;
+    if (!window.__arcadeCoreWillMountNav) {
+      help = document.createElement('button');
+      help.className = 'avatar-guide-help';
+      help.type = 'button';
+      help.setAttribute('aria-label', 'Show game help');
+      help.textContent = '?';
+      document.body.appendChild(help);
+    }
 
     guideMounts[rootId] = {
       root,
@@ -592,8 +602,9 @@
       petSize: options.petSize,
       index: 0
     };
+    guideByGame[gameId] = rootId;
     const ctx = guideMounts[rootId];
-    help.addEventListener('click', () => showGuide(rootId));
+    if (help) help.addEventListener('click', () => showGuide(rootId));
     root.querySelector('[data-guide-close]').addEventListener('click', () => hideGuide(rootId));
     root.querySelector('[data-guide-back]').addEventListener('click', () => {
       ctx.index = Math.max(0, ctx.index - 1);
@@ -618,6 +629,7 @@
     mountShop,
     mountGuide,
     showGuide,
+    showGuideForGame,
     refreshShop: renderShop
   };
 })();

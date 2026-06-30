@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <script src="ios-app.js"></script>
+<script src="arcade-core.js"></script>
 <script src="avatar.js"></script>
 <title>Cosmic Pong!</title>
 <style>
@@ -98,9 +99,9 @@
 <script>
 // ── SHARED ARCADE BANK ──
 const ARCADE_KEY = 'masonArcade';
-function arcadeLoad(){ try { return JSON.parse(localStorage.getItem(ARCADE_KEY)) || {}; } catch(e){ return {}; } }
-function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
-function arcadeEarn(n){ const b = arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(b.earned||0)+n; arcadeSave(b); }
+function arcadeLoad(){ if (window.ArcadeCore) return ArcadeCore.load(); try { return JSON.parse(localStorage.getItem(ARCADE_KEY)) || {}; } catch(e){ return {}; } }
+function arcadeSave(b){ if (window.ArcadeCore) return ArcadeCore.save(b); localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
+function arcadeEarn(n){ if (window.ArcadeCore) return ArcadeCore.earnStars(n); const b = arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(b.earned||0)+n; arcadeSave(b); }
 
 // ── Canvas ──
 const canvas = document.getElementById('game-canvas');
@@ -113,7 +114,7 @@ const PLAY_W = HOX - 10;
 
 let gameRunning = false;
 let mouseY = H / 2;
-let playerScore = 0, cpuScore = 0, hits = 0;
+let playerScore = 0, cpuScore = 0, hits = 0, runCompleted = false;
 
 const PLAYER_W = 22, PLAYER_H = 155;
 const CPU_W = 15, CPU_H = 75;
@@ -298,6 +299,7 @@ function showMessage(text, duration=1400){
 }
 
 function update(){
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   if (!gameRunning) return;
   const target = mouseY - PLAYER_H/2;
   player.y += (target - player.y)*0.38;
@@ -340,6 +342,8 @@ function update(){
     showMessage('🚀 GREAT HIT! +1 PART!'); playScore();
     if (playerScore === 10){
       arcadeEarn(10);                           // liftoff bonus
+      if (!runCompleted && window.ArcadeCore) ArcadeCore.completeGame('cosmic-pong', { score:playerScore, cpuScore, stage });
+      runCompleted = true;
       setTimeout(()=>showMessage('🏆 ROCKET COMPLETE! BLAST OFF! 🚀', 4000), 600);
     }
     resetBall(-1);
@@ -387,12 +391,19 @@ function star(c,cx,cy,inner,outer,points){
   c.closePath(); c.fill();
 }
 
-function gameLoop(){ update(); draw(); requestAnimationFrame(gameLoop); }
+function gameLoop(){
+  if (!(window.ArcadeCore && ArcadeCore.isPaused())) {
+    update();
+    draw();
+  }
+  requestAnimationFrame(gameLoop);
+}
 
 // ── Audio ──
 let audioCtx;
 function getAudio(){ return audioCtx || (audioCtx = new (window.AudioContext||window.webkitAudioContext)()); }
 function playTone(freq, dur, type='square', vol=0.15){
+  if (window.ArcadeCore && ArcadeCore.isMuted()) return;
   try{ const a=getAudio(), o=a.createOscillator(), g=a.createGain();
     o.connect(g); g.connect(a.destination); o.type=type; o.frequency.setValueAtTime(freq, a.currentTime);
     o.frequency.exponentialRampToValueAtTime(freq*0.8, a.currentTime+dur);
@@ -408,10 +419,12 @@ function playScore(){ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>playTone(
 // ── Input ──
 const area = document.getElementById('game-area');
 function updatePaddleFromClientY(clientY){
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   const rect = area.getBoundingClientRect();
   mouseY = (clientY - rect.top) * (H / rect.height);
 }
 function startPong(){
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   if (gameRunning) return;
   document.getElementById('start-screen').style.display='none';
   gameRunning = true;

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <script src="ios-app.js"></script>
+<script src="arcade-core.js"></script>
 <script src="avatar.js"></script>
 <title>Intergalactic Air Hockey!</title>
 <style>
@@ -238,9 +239,10 @@
 
 <script>
 const ARCADE_KEY = 'masonArcade';
-function arcadeLoad(){ try { return JSON.parse(localStorage.getItem(ARCADE_KEY)) || {}; } catch(e){ return {}; } }
-function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
+function arcadeLoad(){ if (window.ArcadeCore) return ArcadeCore.load(); try { return JSON.parse(localStorage.getItem(ARCADE_KEY)) || {}; } catch(e){ return {}; } }
+function arcadeSave(b){ if (window.ArcadeCore) return ArcadeCore.save(b); localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
 function arcadeEarn(n){
+  if (window.ArcadeCore) return ArcadeCore.earnStars(n);
   const b = arcadeLoad();
   b.coins = (b.coins || 0) + n;
   b.earned = (b.earned || 0) + n;
@@ -287,6 +289,7 @@ let pointerActive = false;
 let pointerTargetX = W / 2;
 let messageTimer = 0;
 let particles = [];
+let runCompleted = false;
 
 const player = { x: W / 2, y: H - 88, r: 39, vx: 0, targetX: W / 2 };
 const alien = { x: W / 2, y: 88, r: 35, vx: 0 };
@@ -318,6 +321,7 @@ function resetPuck(direction = Math.random() > 0.5 ? 1 : -1){
 function resetMatch(serveDirection = Math.random() > 0.5 ? 1 : -1){
   playerScore = 0;
   alienScore = 0;
+  runCompleted = false;
   updateHud();
   player.x = W / 2;
   player.targetX = W / 2;
@@ -328,6 +332,7 @@ function resetMatch(serveDirection = Math.random() > 0.5 ? 1 : -1){
 }
 
 function startGame(){
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   if (!gameRunning) {
     gameRunning = true;
     pointPaused = false;
@@ -379,6 +384,7 @@ function updateParticles(dt){
 }
 
 function playTone(freq, dur, type = 'sine', vol = 0.14){
+  if (window.ArcadeCore && ArcadeCore.isMuted()) return;
   try {
     const Audio = window.AudioContext || window.webkitAudioContext;
     if (!Audio) return;
@@ -424,6 +430,8 @@ function scorePoint(side){
   const winner = playerScore >= WINNING_SCORE ? 'player' : alienScore >= WINNING_SCORE ? 'alien' : null;
   if (winner) {
     if (winner === 'player') arcadeEarn(5);
+    if (!runCompleted && window.ArcadeCore) ArcadeCore.completeGame('intergalactic-air-hockey', { winner, playerScore, alienScore });
+    runCompleted = true;
     setTimeout(() => {
       playWin();
       showMessage(winner === 'player' ? 'You win! Resetting...' : 'Alien wins! Resetting...', 2100);
@@ -471,6 +479,7 @@ function collidePaddle(paddle, isPlayer){
 }
 
 function update(dt, time){
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   updateParticles(dt);
   if (!gameRunning || pointPaused) return;
 
@@ -759,6 +768,12 @@ function draw(time){
 }
 
 function loop(time){
+  if (window.ArcadeCore && ArcadeCore.isPaused()) {
+    lastTime = time;
+    draw(time);
+    requestAnimationFrame(loop);
+    return;
+  }
   const dt = lastTime ? Math.min(2, (time - lastTime) / 16.67) : 1;
   lastTime = time;
   update(dt, time);
@@ -768,6 +783,7 @@ function loop(time){
 
 area.addEventListener('pointerdown', e => {
   e.preventDefault();
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   startGame();
   pointerActive = true;
   setPointerTarget(e.clientX);
@@ -775,6 +791,7 @@ area.addEventListener('pointerdown', e => {
 }, { passive:false });
 
 area.addEventListener('pointermove', e => {
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   if (!pointerActive && e.pointerType !== 'touch') return;
   e.preventDefault();
   setPointerTarget(e.clientX);
@@ -790,6 +807,7 @@ area.addEventListener('pointerup', e => {
 area.addEventListener('pointercancel', () => { pointerActive = false; });
 
 area.addEventListener('touchstart', e => {
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   if (e.touches[0]) {
     e.preventDefault();
     startGame();
@@ -799,6 +817,7 @@ area.addEventListener('touchstart', e => {
 }, { passive:false });
 
 area.addEventListener('touchmove', e => {
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   if (e.touches[0]) {
     e.preventDefault();
     pointerActive = true;
@@ -809,6 +828,7 @@ area.addEventListener('touchmove', e => {
 area.addEventListener('touchend', () => { pointerActive = false; });
 
 window.addEventListener('keydown', e => {
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   if (e.code === 'ArrowLeft' || e.key === 'ArrowLeft') {
     e.preventDefault();
     keys.left = true;

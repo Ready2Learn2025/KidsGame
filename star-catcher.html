@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <script src="ios-app.js"></script>
+<script src="arcade-core.js"></script>
 <script src="avatar.js"></script>
 <title>Star Catcher!</title>
 <style>
@@ -37,9 +38,9 @@
 <script>
 // ── SHARED ARCADE BANK ──
 const ARCADE_KEY='masonArcade';
-function arcadeLoad(){ try{ return JSON.parse(localStorage.getItem(ARCADE_KEY))||{}; }catch(e){ return {}; } }
-function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
-function arcadeEarn(n){ const b=arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(b.earned||0)+n; arcadeSave(b); }
+function arcadeLoad(){ if (window.ArcadeCore) return ArcadeCore.load(); try{ return JSON.parse(localStorage.getItem(ARCADE_KEY))||{}; }catch(e){ return {}; } }
+function arcadeSave(b){ if (window.ArcadeCore) return ArcadeCore.save(b); localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
+function arcadeEarn(n){ if (window.ArcadeCore) return ArcadeCore.earnStars(n); const b=arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(b.earned||0)+n; arcadeSave(b); }
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -49,7 +50,7 @@ const livesEl = document.getElementById('lives');
 const bestEl = document.getElementById('best');
 
 let basketX = W/2, caught = 0, lives = 3, items = [], stars = [], pops = [];
-let spawnTimer = 0, started = false, gameOver = false, flash = 0;
+let spawnTimer = 0, started = false, gameOver = false, flash = 0, runCompleted = false;
 let best = getBest();
 bestEl.textContent = best;
 
@@ -67,7 +68,13 @@ function saveBest(value){
 
 for (let i=0;i<60;i++) stars.push({ x:Math.random()*W, y:Math.random()*H, r:Math.random()*1.5+0.3, t:Math.random()*6 });
 
-function reset(){ caught=0; lives=3; items=[]; pops=[]; spawnTimer=0; gameOver=false; flash=0; updateHUD(); }
+function arcadePaused(){ return window.ArcadeCore && ArcadeCore.isPaused(); }
+function completeRun(){
+  if (runCompleted) return;
+  runCompleted = true;
+  if (window.ArcadeCore) ArcadeCore.completeGame('star-catcher', { score:caught, best });
+}
+function reset(){ caught=0; lives=3; items=[]; pops=[]; spawnTimer=0; gameOver=false; flash=0; runCompleted=false; updateHUD(); }
 function updateHUD(){ caughtEl.textContent=caught; livesEl.textContent = lives>0 ? '❤️'.repeat(lives) : '💀'; }
 function updateBest(){
   if (caught > best) {
@@ -118,6 +125,7 @@ function drawRock(x,y,r){
 }
 
 function loop(){
+  if (arcadePaused()) { requestAnimationFrame(loop); return; }
   ctx.clearRect(0,0,W,H);
   // bg stars
   stars.forEach(s=>{ s.t+=0.04; ctx.globalAlpha=0.3+0.4*Math.abs(Math.sin(s.t));
@@ -145,7 +153,7 @@ function loop(){
     if (it.y > by-6 && it.y < by+30 && Math.abs(it.x-basketX) < bw/2+6){
       it.dead = true;
       if (it.type==='star'){ caught++; arcadeEarn(1); updateBest(); pops.push({x:it.x,y:by-6,life:1}); }
-      else { lives--; flash=12; if (lives<=0) gameOver=true; }
+      else { lives--; flash=12; if (lives<=0) { gameOver=true; completeRun(); } }
       updateHUD();
     }
     if (it.y > H+30) it.dead = true;
@@ -180,7 +188,7 @@ function setX(clientX){
 }
 canvas.addEventListener('mousemove', e=> setX(e.clientX));
 canvas.addEventListener('touchmove', e=>{ e.preventDefault(); setX(e.touches[0].clientX); }, {passive:false});
-function go(){ if (!started){ started=true; reset(); } else if (gameOver){ reset(); } }
+function go(){ if (arcadePaused()) return; if (!started){ started=true; reset(); } else if (gameOver){ reset(); } }
 canvas.addEventListener('click', go);
 canvas.addEventListener('touchstart', e=>{ e.preventDefault(); setX(e.touches[0].clientX); go(); }, {passive:false});
 document.addEventListener('keydown', e=>{

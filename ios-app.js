@@ -60,6 +60,7 @@
 
   function installHomeBar(){
     if (isHomePage() || !document.body || document.getElementById('arcade-home-bar')) return;
+    if (window.__arcadeCoreWillMountNav) return;
     Array.prototype.forEach.call(document.querySelectorAll('#home-link,.back-btn'), function(el){
       el.classList.add('arcade-hidden-home-link');
     });

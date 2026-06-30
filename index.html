@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <script src="ios-app.js"></script>
+<script src="arcade-core.js"></script>
 <script src="avatar.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 <title>Mason's Space Arcade</title>
@@ -43,6 +44,107 @@ header { text-align: center; margin-bottom: 8px; }
 @keyframes floatUp { from { transform: translateY(0) rotate(-1deg); } to { transform: translateY(-12px) rotate(1deg); } }
 .title-sub { font-size: 1.1rem; color: rgba(255,255,255,0.75); margin-top: 6px; }
 
+.play-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(230px, 0.85fr);
+  gap: 18px;
+  align-items: center;
+  margin: 26px 0 18px;
+  padding: 22px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 12% 20%, rgba(255,215,0,0.22), transparent 22%),
+    radial-gradient(circle at 82% 16%, rgba(50,173,230,0.22), transparent 20%),
+    rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,215,0,0.32);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.28);
+}
+.play-copy { display: grid; gap: 12px; }
+.play-title {
+  font-size: 2.55rem;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(255,215,0,0.25), 4px 4px 0 rgba(0,0,0,0.3);
+}
+.play-title strong { color: #FFD700; }
+.play-sub {
+  color: rgba(255,255,255,0.78);
+  font-size: 1.05rem;
+  line-height: 1.35;
+  max-width: 540px;
+}
+.big-play-button {
+  width: fit-content;
+  min-width: 210px;
+  min-height: 68px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-radius: 999px;
+  padding: 16px 34px;
+  background: #FFD700;
+  color: #743900;
+  text-decoration: none;
+  font-size: 1.5rem;
+  box-shadow: 0 8px 0 #B06A00, 0 18px 38px rgba(0,0,0,0.34);
+}
+.big-play-button:active {
+  transform: translateY(5px);
+  box-shadow: 0 3px 0 #B06A00, 0 12px 28px rgba(0,0,0,0.3);
+}
+.featured-game {
+  min-height: 220px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.featured-icon {
+  width: 108px;
+  height: 108px;
+  display: grid;
+  place-items: center;
+  border-radius: 30px;
+  font-size: 4.7rem;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.18);
+  box-shadow: inset 0 0 26px rgba(255,255,255,0.08), 0 12px 28px rgba(0,0,0,0.28);
+}
+.featured-name { font-size: 1.45rem; color: #FFD700; }
+.featured-text { color: rgba(255,255,255,0.76); font-size: 0.95rem; line-height: 1.35; max-width: 260px; }
+.home-section { margin-top: 22px; }
+.section-title {
+  font-size: 1.55rem;
+  color: #FFD700;
+  margin-bottom: 12px;
+  text-shadow: 0 0 16px rgba(255,200,0,0.26);
+}
+.continue-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 18px;
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 20px;
+  background: rgba(255,255,255,0.08);
+  color: white;
+  text-decoration: none;
+}
+.continue-main { display: flex; align-items: center; gap: 14px; }
+.continue-icon { font-size: 2.35rem; }
+.continue-title { color: #FFD700; font-size: 1.2rem; }
+.continue-copy { color: rgba(255,255,255,0.72); font-size: 0.9rem; margin-top: 2px; }
+.continue-cta {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: #32ADE6;
+  color: #05243A;
+  padding: 10px 18px;
+}
+
 /* WALLET */
 .wallet {
   display: flex; align-items: center; justify-content: center; gap: 26px;
@@ -51,7 +153,7 @@ header { text-align: center; margin-bottom: 8px; }
   border: 1px solid rgba(255,215,0,0.4);
   border-radius: 24px;
   padding: 16px 26px;
-  margin: 22px auto 8px;
+  margin: 0 auto 8px;
   max-width: 560px;
   box-shadow: 0 0 30px rgba(255,200,0,0.12);
 }
@@ -68,6 +170,7 @@ header { text-align: center; margin-bottom: 8px; }
   flex-wrap: wrap;
   margin: 16px 0 12px;
 }
+.advanced-locked[hidden], .continue-card[hidden] { display: none; }
 .avatar-shop-button {
   font-family: inherit;
   display: inline-flex;
@@ -426,12 +529,116 @@ body.avatar-shop-open { overflow: hidden; }
 @keyframes pop { 0% { transform: scale(0.7); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
 
 footer { text-align: center; margin-top: 34px; }
-.reset-btn {
-  font-family: inherit; font-size: 0.85rem; color: rgba(255,255,255,0.45);
-  background: transparent; border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 20px; padding: 7px 18px; cursor: pointer;
+.parent-settings {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  max-width: 520px;
+  margin: 0 auto;
+  color: rgba(255,255,255,0.62);
 }
-.reset-btn:hover { color: white; border-color: rgba(255,255,255,0.4); }
+.parent-toggle,
+.reset-btn,
+.reset-final-btn {
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.72);
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 20px;
+  padding: 10px 18px;
+  cursor: pointer;
+}
+.parent-toggle:hover,
+.reset-btn:hover {
+  color: white;
+  border-color: rgba(255,255,255,0.4);
+}
+.parent-body {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 20px;
+  background: rgba(0,0,0,0.18);
+}
+.parent-body[hidden] { display: none; }
+.reset-hold-wrap { display: grid; gap: 8px; }
+.reset-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.14);
+}
+.reset-progress span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #FF6B6B, #FFD700);
+}
+.reset-challenge {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+}
+.reset-challenge[hidden] { display: none; }
+.reset-challenge input {
+  width: 120px;
+  min-height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.1);
+  color: white;
+  text-align: center;
+  font: inherit;
+}
+.reset-final-btn {
+  color: white;
+  background: #B3261E;
+  border-color: rgba(255,255,255,0.28);
+}
+.celebration-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(3,3,16,0.76);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.celebration-modal[hidden] { display: none; }
+.celebration-card {
+  width: min(520px, 94vw);
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  text-align: center;
+  padding: 24px;
+  border-radius: 28px;
+  background: rgba(14,14,42,0.97);
+  border: 2px solid rgba(255,215,0,0.54);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.54);
+}
+.celebration-emoji { font-size: 4.3rem; }
+.celebration-title { color: #FFD700; font-size: 2rem; }
+.celebration-copy { color: rgba(255,255,255,0.78); line-height: 1.35; }
+.celebration-avatar { min-height: 150px; display: flex; align-items: flex-end; justify-content: center; }
+.celebration-button {
+  font-family: inherit;
+  border: 0;
+  border-radius: 999px;
+  padding: 13px 26px;
+  cursor: pointer;
+  background: #FFD700;
+  color: #743900;
+  font-size: 1.05rem;
+  box-shadow: 0 5px 0 #B06A00;
+}
 
 /* TOAST */
 .toast {
@@ -443,6 +650,14 @@ footer { text-align: center; margin-top: 34px; }
 
 @media (max-width: 520px) {
   .title-main { font-size: 2.1rem; }
+  .play-hero { grid-template-columns: 1fr; padding: 18px; margin-top: 20px; }
+  .play-title { font-size: 2rem; }
+  .play-sub { font-size: 0.95rem; }
+  .big-play-button { width: 100%; min-width: 0; }
+  .featured-game { min-height: 170px; }
+  .featured-icon { width: 88px; height: 88px; font-size: 3.8rem; }
+  .continue-card { align-items: stretch; flex-direction: column; }
+  .continue-cta { text-align: center; }
   .wallet { gap: 16px; padding: 14px 18px; }
   .wallet-num { font-size: 1.9rem; }
   .avatar-shop-button { width: 100%; max-width: 300px; }
@@ -467,25 +682,61 @@ footer { text-align: center; margin-top: 34px; }
     <div class="title-sub">Play games, collect stars, unlock more fun!</div>
   </header>
 
-  <div class="wallet">
-    <div class="wallet-block">
-      <div class="wallet-num" id="coins">0</div>
-      <div class="wallet-label">⭐ STARS TO SPEND</div>
+  <section class="play-hero" aria-label="Play games">
+    <div class="play-copy">
+      <div class="play-title">Ready to <strong>play?</strong></div>
+      <div class="play-sub">Start with a quick catching game, earn your first stars, and unlock your avatar surprise.</div>
+      <a class="big-play-button" id="primary-play" href="star-catcher.html">
+        <span>▶</span><span>Play</span>
+      </a>
     </div>
-    <div class="wallet-div"></div>
-    <div class="wallet-block">
-      <div class="wallet-num" id="earned">0</div>
-      <div class="wallet-label">🏆 STARS EARNED</div>
+    <div class="featured-game" aria-label="Featured game">
+      <div class="featured-icon">🧺</div>
+      <div class="featured-name">Star Catcher</div>
+      <div class="featured-text">Move the basket, catch stars, and dodge asteroids.</div>
     </div>
-  </div>
-  <div class="avatar-shop-row">
-    <button class="avatar-shop-button" id="avatar-shop-open" type="button" aria-haspopup="dialog" aria-controls="avatar-shop-modal">
-      <span>🧑‍🚀</span><span>Avatar Shop</span>
-    </button>
-    <button class="avatar-shop-button my-avatar-button" id="my-avatar-open" type="button" aria-haspopup="dialog" aria-controls="my-avatar-modal">
-      <span>🌟</span><span>My Avatar</span>
-    </button>
-  </div>
+  </section>
+
+  <section class="home-section" aria-label="Continue playing">
+    <a class="continue-card" id="continue-card" href="star-catcher.html" hidden>
+      <span class="continue-main">
+        <span class="continue-icon" id="continue-icon">🧺</span>
+        <span>
+          <span class="continue-title" id="continue-title">Continue Playing</span>
+          <span class="continue-copy" id="continue-copy">Jump back into your last game.</span>
+        </span>
+      </span>
+      <span class="continue-cta">Play</span>
+    </a>
+  </section>
+
+  <section class="home-section" aria-label="Stars">
+    <div class="section-title">Stars</div>
+    <div class="wallet" id="stars-panel">
+      <div class="wallet-block">
+        <div class="wallet-num" id="coins">0</div>
+        <div class="wallet-label">⭐ STARS TO SPEND</div>
+      </div>
+      <div class="wallet-div"></div>
+      <div class="wallet-block">
+        <div class="wallet-num" id="earned">0</div>
+        <div class="wallet-label">🏆 STARS EARNED</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="home-section advanced-locked" id="avatar-zone" aria-label="Avatar and shop" hidden>
+    <div class="section-title">Avatar</div>
+    <div class="avatar-shop-row">
+      <button class="avatar-shop-button my-avatar-button" id="my-avatar-open" type="button" aria-haspopup="dialog" aria-controls="my-avatar-modal">
+        <span>🌟</span><span>My Avatar</span>
+      </button>
+      <button class="avatar-shop-button" id="avatar-shop-open" type="button" aria-haspopup="dialog" aria-controls="avatar-shop-modal">
+        <span>🧑‍🚀</span><span>Avatar Shop</span>
+      </button>
+    </div>
+  </section>
+
   <div class="avatar-shop-modal" id="avatar-shop-modal" hidden>
     <div class="avatar-shop-dialog" role="dialog" aria-modal="true" aria-labelledby="avatar-shop-title">
       <div class="avatar-shop-head">
@@ -562,21 +813,51 @@ footer { text-align: center; margin-top: 34px; }
       </div>
     </div>
   </div>
+  <div class="celebration-modal" id="first-play-celebration" hidden>
+    <div class="celebration-card" role="dialog" aria-modal="true" aria-labelledby="celebration-title">
+      <div class="celebration-emoji">🎉</div>
+      <div class="celebration-title" id="celebration-title">Stars earned!</div>
+      <div class="celebration-copy">You unlocked your avatar, the shop, and a Party Hat. Here are 15 bonus stars for your first arcade run.</div>
+      <div class="celebration-avatar" data-celebration-avatar></div>
+      <button class="celebration-button" id="celebration-continue" type="button">Continue Playing</button>
+    </div>
+  </div>
 
-  <div class="hint">Earn stars in any game — they unlock new games and buy avatar gear!</div>
-
-  <div class="grid" id="grid"></div>
+  <section class="home-section" aria-label="All games">
+    <div class="section-title">Play Games</div>
+    <div class="hint">Earn stars in any game — they unlock new games and buy avatar gear!</div>
+    <div class="grid" id="grid"></div>
+  </section>
 
   <footer>
-    <button class="reset-btn" onclick="resetAll()">↺ Reset all progress</button>
+    <div class="parent-settings">
+      <button class="parent-toggle" id="parent-settings-open" type="button" aria-expanded="false">Parent Settings</button>
+      <div class="parent-body" id="parent-settings-body" hidden>
+        <div class="reset-hold-wrap">
+          <button class="reset-btn" id="reset-hold-btn" type="button">Hold 3 seconds to reset progress</button>
+          <div class="reset-progress" aria-hidden="true"><span id="reset-progress-fill"></span></div>
+        </div>
+        <div class="reset-challenge" id="reset-challenge" hidden>
+          <label for="reset-answer">Answer: 4 + 5</label>
+          <input id="reset-answer" inputmode="numeric" autocomplete="off">
+          <button class="reset-final-btn" id="reset-final-btn" type="button">Reset Progress</button>
+        </div>
+      </div>
+    </div>
   </footer>
 </div>
 
 <script>
 // ── SHARED ARCADE BANK ──
 const ARCADE_KEY = 'masonArcade';
-function arcadeLoad(){ try { return JSON.parse(localStorage.getItem(ARCADE_KEY)) || {}; } catch(e){ return {}; } }
-function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
+function arcadeLoad(){
+  if (window.ArcadeCore) return ArcadeCore.load();
+  try { return JSON.parse(localStorage.getItem(ARCADE_KEY)) || {}; } catch(e){ return {}; }
+}
+function arcadeSave(b){
+  if (window.ArcadeCore) return ArcadeCore.save(b);
+  localStorage.setItem(ARCADE_KEY, JSON.stringify(b));
+}
 
 // One-time migration from the old standalone Math Stars save
 (function migrate(){
@@ -611,6 +892,66 @@ const GAMES = [
   { id:'coller',  name:'Color Ship',   icon:'🚀', file:'coller-space.html',     cost:100, blurb:'colors your ship, save for later!' },
 
 ];
+const FIRST_GAME = GAMES.find(g => g.id === 'catch') || GAMES[0];
+let celebrationOpen = false;
+
+function gameKey(game){
+  return game.file.replace(/\.html$/i, '');
+}
+
+function findGameByKey(key){
+  return GAMES.find(g => gameKey(g) === key || g.id === key) || FIRST_GAME;
+}
+
+function updateContinueCard(bank){
+  const card = document.getElementById('continue-card');
+  const lastKey = bank.lastPlayedGameId || '';
+  if (!lastKey) {
+    card.hidden = true;
+    return;
+  }
+  const game = findGameByKey(lastKey);
+  card.href = game.file;
+  document.getElementById('continue-icon').textContent = game.icon;
+  document.getElementById('continue-title').textContent = `Continue ${game.name}`;
+  document.getElementById('continue-copy').textContent = game.blurb;
+  card.hidden = false;
+}
+
+function updateFirstPlaySurfaces(bank){
+  const completed = window.ArcadeCore ? ArcadeCore.hasFirstPlayCompleted() : !!(bank.firstPlay && bank.firstPlay.completed);
+  document.getElementById('avatar-zone').hidden = !completed;
+  updateContinueCard(bank);
+  maybeShowFirstPlayCelebration(bank);
+}
+
+function maybeShowFirstPlayCelebration(bank){
+  if (celebrationOpen) return;
+  const firstPlay = bank.firstPlay || {};
+  if (!firstPlay.completed || !firstPlay.rewardGiven || firstPlay.celebrationSeen) return;
+  celebrationOpen = true;
+  const modal = document.getElementById('first-play-celebration');
+  modal.hidden = false;
+  document.body.classList.add('avatar-shop-open');
+  if (window.ArcadeAvatar) {
+    const state = ArcadeAvatar.getState();
+    ArcadeAvatar.drawChar(document.querySelector('[data-celebration-avatar]'), 'excited', 128, state.char);
+  }
+  document.getElementById('celebration-continue').focus();
+}
+
+function closeFirstPlayCelebration(){
+  if (window.ArcadeCore) ArcadeCore.markCelebrationSeen();
+  else {
+    const b = arcadeLoad();
+    b.firstPlay = { ...(b.firstPlay || {}), celebrationSeen:true };
+    arcadeSave(b);
+  }
+  celebrationOpen = false;
+  document.getElementById('first-play-celebration').hidden = true;
+  document.body.classList.remove('avatar-shop-open');
+  render();
+}
 
 function render(){
   const b = arcadeLoad();
@@ -618,6 +959,7 @@ function render(){
   const seen = b.unlockSeen || [];
   document.getElementById('coins').textContent  = coins;
   document.getElementById('earned').textContent = earned;
+  updateFirstPlaySurfaces(b);
 
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
@@ -969,15 +1311,74 @@ function closeMyAvatar(){
   myAvatarOpen.focus();
 }
 
-function resetAll(){
-  if (!confirm('Reset ALL stars, unlocks, avatar care and dress-up items? This cannot be undone.')) return;
+function performReset(){
   localStorage.removeItem(ARCADE_KEY);
   localStorage.removeItem('mathStars');
   const b = {}; b.migrated = true; arcadeSave(b);
+  resetChallenge.hidden = true;
+  resetAnswer.value = '';
+  resetProgressFill.style.width = '0%';
   render();
   refreshAvatarShop();
   refreshMyAvatar();
   toast('Progress reset. Fresh start! 🌟');
+}
+
+const parentSettingsOpen = document.getElementById('parent-settings-open');
+const parentSettingsBody = document.getElementById('parent-settings-body');
+const resetHoldBtn = document.getElementById('reset-hold-btn');
+const resetProgressFill = document.getElementById('reset-progress-fill');
+const resetChallenge = document.getElementById('reset-challenge');
+const resetAnswer = document.getElementById('reset-answer');
+const resetFinalBtn = document.getElementById('reset-final-btn');
+let resetHoldTimer = null;
+let resetHoldFrame = null;
+let resetHoldStart = 0;
+
+function setParentSettingsOpen(open){
+  parentSettingsBody.hidden = !open;
+  parentSettingsOpen.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function stopResetHold(){
+  if (resetHoldTimer) clearTimeout(resetHoldTimer);
+  if (resetHoldFrame) cancelAnimationFrame(resetHoldFrame);
+  resetHoldTimer = null;
+  resetHoldFrame = null;
+  resetHoldStart = 0;
+  if (resetChallenge.hidden) resetProgressFill.style.width = '0%';
+}
+
+function tickResetHold(){
+  if (!resetHoldStart) return;
+  const pct = Math.min(100, (Date.now() - resetHoldStart) / 3000 * 100);
+  resetProgressFill.style.width = `${pct}%`;
+  if (pct < 100) resetHoldFrame = requestAnimationFrame(tickResetHold);
+}
+
+function startResetHold(e){
+  e.preventDefault();
+  stopResetHold();
+  resetChallenge.hidden = true;
+  resetHoldStart = Date.now();
+  tickResetHold();
+  resetHoldTimer = setTimeout(() => {
+    resetHoldTimer = null;
+    resetHoldFrame = null;
+    resetProgressFill.style.width = '100%';
+    resetChallenge.hidden = false;
+    resetAnswer.focus();
+  }, 3000);
+}
+
+function tryParentReset(){
+  if (resetAnswer.value.trim() !== '9') {
+    toast('Try the parent challenge again.');
+    resetAnswer.select();
+    return;
+  }
+  if (!confirm('Reset ALL stars, unlocks, avatar care and dress-up items? This cannot be undone.')) return;
+  performReset();
 }
 
 // ── SPACE BACKGROUND ──
@@ -1009,6 +1410,7 @@ function resetAll(){
 })();
 
 render();
+document.getElementById('celebration-continue').addEventListener('click', closeFirstPlayCelebration);
 avatarShopOpen.addEventListener('click', openAvatarShop);
 avatarShopClose.addEventListener('click', closeAvatarShop);
 avatarShopModal.addEventListener('click', e => {
@@ -1024,9 +1426,19 @@ document.getElementById('treat-avatar').addEventListener('click', treatAvatar);
 document.getElementById('bed-avatar').addEventListener('click', buyBetterBed);
 document.getElementById('train-trick').addEventListener('click', trainTrick);
 document.getElementById('show-trick').addEventListener('click', showLearnedTrick);
+parentSettingsOpen.addEventListener('click', () => setParentSettingsOpen(parentSettingsBody.hidden));
+resetHoldBtn.addEventListener('pointerdown', startResetHold);
+resetHoldBtn.addEventListener('pointerup', stopResetHold);
+resetHoldBtn.addEventListener('pointercancel', stopResetHold);
+resetHoldBtn.addEventListener('pointerleave', stopResetHold);
+resetFinalBtn.addEventListener('click', tryParentReset);
+resetAnswer.addEventListener('keydown', e => {
+  if (e.key === 'Enter') tryParentReset();
+});
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
-  if (!myAvatarModal.hidden) closeMyAvatar();
+  if (!document.getElementById('first-play-celebration').hidden) closeFirstPlayCelebration();
+  else if (!myAvatarModal.hidden) closeMyAvatar();
   else if (!avatarShopModal.hidden) closeAvatarShop();
 });
 // Refresh when returning to the tab (stars earned in a game)
