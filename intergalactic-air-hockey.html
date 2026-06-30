@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<script src="ios-app.js"></script>
+<script src="avatar.js"></script>
+<title>Intergalactic Air Hockey!</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    font-family: 'Arial Rounded MT Bold', 'Arial Black', Arial, sans-serif;
+    color: white;
+    background:
+      radial-gradient(circle at 18% 14%, rgba(54, 238, 255, 0.22), transparent 18%),
+      radial-gradient(circle at 82% 18%, rgba(255, 68, 214, 0.18), transparent 16%),
+      radial-gradient(circle at 18% 86%, rgba(255, 215, 0, 0.13), transparent 18%),
+      linear-gradient(180deg, #09051d 0%, #0a0830 48%, #03030f 100%);
+    overflow-x: hidden;
+    user-select: none;
+  }
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(circle, rgba(255,255,255,0.9) 0 1px, transparent 1.6px),
+      radial-gradient(circle, rgba(100,225,255,0.85) 0 1px, transparent 1.5px);
+    background-size: 62px 62px, 96px 96px;
+    background-position: 10px 12px, 34px 28px;
+    opacity: 0.45;
+  }
+  #home-link {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 60;
+    color: #FFD700;
+    text-decoration: none;
+    font-size: 15px;
+    padding: 8px 17px;
+    border: 1px solid rgba(255, 215, 0, 0.42);
+    border-radius: 999px;
+    background: rgba(7, 7, 28, 0.72);
+    box-shadow: 0 0 24px rgba(255, 215, 0, 0.15);
+    backdrop-filter: blur(10px);
+  }
+  .screen {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 54px 12px 18px;
+  }
+  #title {
+    max-width: 94vw;
+    color: #FFD700;
+    font-size: clamp(1.45rem, 5vw, 2.35rem);
+    line-height: 1.05;
+    letter-spacing: 1px;
+    text-align: center;
+    text-shadow: 0 0 28px rgba(255, 215, 0, 0.55), 0 4px 0 rgba(0,0,0,0.45);
+  }
+  #score-row {
+    width: min(520px, 94vw);
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 10px;
+  }
+  .score-box {
+    min-width: 0;
+    padding: 7px 10px;
+    border-radius: 12px;
+    border: 2px solid rgba(255,255,255,0.16);
+    background: rgba(255,255,255,0.09);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 10px 30px rgba(0,0,0,0.22);
+    text-align: center;
+  }
+  .score-box.you { border-color: rgba(61, 226, 255, 0.54); }
+  .score-box.alien { border-color: rgba(255, 76, 221, 0.54); }
+  .score-label {
+    display: block;
+    color: rgba(255,255,255,0.72);
+    font-size: 0.66rem;
+    letter-spacing: 1.3px;
+  }
+  .score-num {
+    display: block;
+    margin-top: 1px;
+    color: #fff;
+    font-size: 1.72rem;
+    line-height: 1;
+    text-shadow: 0 0 18px currentColor;
+  }
+  .you .score-num { color: #54ECFF; }
+  .alien .score-num { color: #FF5DE1; }
+  #vs {
+    color: #FFD700;
+    font-size: 1rem;
+    text-shadow: 0 0 16px rgba(255, 215, 0, 0.6);
+  }
+  #game-area {
+    position: relative;
+    width: min(520px, 94vw);
+    aspect-ratio: 520 / 720;
+    max-height: 76vh;
+    border: 5px solid rgba(102, 86, 214, 0.9);
+    border-radius: 24px;
+    overflow: hidden;
+    background: #07071d;
+    box-shadow:
+      0 0 46px rgba(72, 220, 255, 0.28),
+      0 0 74px rgba(255, 76, 221, 0.13),
+      inset 0 2px 0 rgba(255,255,255,0.12);
+    touch-action: none;
+    cursor: none;
+  }
+  #game-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  #message {
+    position: absolute;
+    left: 50%;
+    top: 47%;
+    z-index: 16;
+    width: min(420px, 86%);
+    transform: translate(-50%, -50%);
+    color: #FFD700;
+    font-size: clamp(1.4rem, 5vw, 2.2rem);
+    line-height: 1.1;
+    text-align: center;
+    text-shadow: 0 4px 0 rgba(0,0,0,0.55), 0 0 24px rgba(255, 215, 0, 0.78);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+  }
+  #start-screen {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 22px;
+    text-align: center;
+    background: radial-gradient(circle at 50% 42%, rgba(21, 29, 89, 0.78), rgba(3, 3, 15, 0.94) 68%);
+  }
+  #start-screen h2 {
+    color: #FFD700;
+    font-size: clamp(1.75rem, 7vw, 2.9rem);
+    line-height: 1.02;
+    text-shadow: 0 0 24px rgba(255, 215, 0, 0.58), 0 4px 0 rgba(0,0,0,0.45);
+  }
+  #start-screen p {
+    max-width: 390px;
+    color: rgba(255,255,255,0.82);
+    font-size: clamp(0.94rem, 3.6vw, 1.08rem);
+    line-height: 1.55;
+  }
+  .control-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+  .control-pill {
+    min-width: 74px;
+    padding: 9px 13px;
+    border-radius: 12px;
+    color: #051027;
+    background: #54ECFF;
+    box-shadow: 0 5px 0 #09758e, 0 10px 24px rgba(0,0,0,0.25);
+    font-size: 0.9rem;
+  }
+  #start-btn {
+    border: 4px solid #FFD700;
+    border-radius: 999px;
+    padding: 13px 32px;
+    color: #08122d;
+    background: linear-gradient(180deg, #FFF58A, #FFD700 55%, #FF9F0A);
+    box-shadow: 0 7px 0 #9B5E00, 0 18px 34px rgba(0,0,0,0.34);
+    font-family: inherit;
+    font-size: 1.18rem;
+    cursor: pointer;
+  }
+  #start-btn:active {
+    transform: translateY(5px);
+    box-shadow: 0 2px 0 #9B5E00, 0 9px 22px rgba(0,0,0,0.3);
+  }
+  @media (max-width: 460px) {
+    #home-link { top: 10px; left: 10px; padding: 7px 14px; font-size: 13px; }
+    .screen { justify-content: flex-start; padding-top: 48px; gap: 8px; }
+    #score-row { gap: 7px; }
+    .score-box { padding: 6px 7px; }
+    #game-area { border-width: 4px; border-radius: 20px; max-height: none; }
+  }
+</style>
+</head>
+<body>
+<a id="home-link" href="index.html">🏠 Home</a>
+
+<main class="screen">
+  <h1 id="title">🛸 Intergalactic Air Hockey</h1>
+
+  <div id="score-row" aria-label="Score">
+    <div class="score-box you"><span class="score-label">YOU</span><span class="score-num" id="score-p">0</span></div>
+    <div id="vs">VS</div>
+    <div class="score-box alien"><span class="score-label">ALIEN</span><span class="score-num" id="score-cpu">0</span></div>
+  </div>
+
+  <div id="game-area">
+    <canvas id="game-canvas" width="520" height="720"></canvas>
+    <div id="message"></div>
+    <div id="start-screen">
+      <h2>UFO puck battle!</h2>
+      <p>Slide your space mallet left and right. First pilot to 5 points launches a fresh match.</p>
+      <div class="control-row" aria-label="Controls">
+        <div class="control-pill">← Left</div>
+        <div class="control-pill">Right →</div>
+        <div class="control-pill">Touch</div>
+      </div>
+      <button id="start-btn">▶ Start Match</button>
+    </div>
+  </div>
+</main>
+
+<script>
+const ARCADE_KEY = 'masonArcade';
+function arcadeLoad(){ try { return JSON.parse(localStorage.getItem(ARCADE_KEY)) || {}; } catch(e){ return {}; } }
+function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
+function arcadeEarn(n){
+  const b = arcadeLoad();
+  b.coins = (b.coins || 0) + n;
+  b.earned = (b.earned || 0) + n;
+  arcadeSave(b);
+}
+
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+const area = document.getElementById('game-area');
+const startScreen = document.getElementById('start-screen');
+const startBtn = document.getElementById('start-btn');
+const message = document.getElementById('message');
+const scoreP = document.getElementById('score-p');
+const scoreCpu = document.getElementById('score-cpu');
+
+const W = 520;
+const H = 720;
+const WINNING_SCORE = 5;
+const GOAL_W = 204;
+const GOAL_LEFT = (W - GOAL_W) / 2;
+const GOAL_RIGHT = GOAL_LEFT + GOAL_W;
+const TOP_RAIL = 34;
+const BOTTOM_RAIL = H - 34;
+const SIDE_RAIL = 36;
+
+const ufoImg = new Image();
+ufoImg.src = 'assets/intergalactic-ufo-puck.png';
+
+const stars = Array.from({ length: 95 }, (_, i) => ({
+  x: (i * 79 + Math.random() * 38) % W,
+  y: (i * 113 + Math.random() * 42) % H,
+  r: 0.45 + Math.random() * 1.35,
+  tw: Math.random() * Math.PI * 2,
+  speed: 0.012 + Math.random() * 0.026
+}));
+
+const keys = { left:false, right:false };
+let gameRunning = false;
+let pointPaused = false;
+let playerScore = 0;
+let alienScore = 0;
+let lastTime = 0;
+let pointerActive = false;
+let pointerTargetX = W / 2;
+let messageTimer = 0;
+let particles = [];
+
+const player = { x: W / 2, y: H - 88, r: 39, vx: 0, targetX: W / 2 };
+const alien = { x: W / 2, y: 88, r: 35, vx: 0 };
+const puck = { x: W / 2, y: H / 2, r: 25, vx: 0, vy: 0, spin: 0 };
+
+function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+function rand(min, max){ return min + Math.random() * (max - min); }
+
+function updateHud(){
+  scoreP.textContent = playerScore;
+  scoreCpu.textContent = alienScore;
+}
+
+function showMessage(text, duration = 1200){
+  message.textContent = text;
+  message.style.opacity = 1;
+  clearTimeout(messageTimer);
+  messageTimer = setTimeout(() => { message.style.opacity = 0; }, duration);
+}
+
+function resetPuck(direction = Math.random() > 0.5 ? 1 : -1){
+  puck.x = W / 2;
+  puck.y = H / 2;
+  puck.vx = rand(-2.2, 2.2);
+  puck.vy = direction * rand(4.1, 5.2);
+  puck.spin = 0;
+}
+
+function resetMatch(serveDirection = Math.random() > 0.5 ? 1 : -1){
+  playerScore = 0;
+  alienScore = 0;
+  updateHud();
+  player.x = W / 2;
+  player.targetX = W / 2;
+  alien.x = W / 2;
+  pointerTargetX = W / 2;
+  particles = [];
+  resetPuck(serveDirection);
+}
+
+function startGame(){
+  if (!gameRunning) {
+    gameRunning = true;
+    pointPaused = false;
+    startScreen.style.display = 'none';
+    resetMatch(Math.random() > 0.5 ? 1 : -1);
+    showMessage('First to 5!', 1000);
+  }
+}
+
+function clientToGameX(clientX){
+  const rect = area.getBoundingClientRect();
+  return (clientX - rect.left) * (W / rect.width);
+}
+
+function setPointerTarget(clientX){
+  player.targetX = clamp(clientToGameX(clientX), SIDE_RAIL + player.r, W - SIDE_RAIL - player.r);
+  pointerTargetX = player.targetX;
+}
+
+function inGoal(x){ return x >= GOAL_LEFT && x <= GOAL_RIGHT; }
+
+function burst(x, y, count, color){
+  for (let i = 0; i < count; i++) {
+    const a = rand(0, Math.PI * 2);
+    const s = rand(1.5, 7);
+    particles.push({
+      x, y,
+      vx: Math.cos(a) * s,
+      vy: Math.sin(a) * s,
+      life: 1,
+      size: rand(3, 8),
+      color,
+      rot: rand(0, Math.PI),
+      rotV: rand(-0.22, 0.22)
+    });
+  }
+}
+
+function updateParticles(dt){
+  particles = particles.filter(p => {
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vx *= Math.pow(0.985, dt);
+    p.vy = p.vy * Math.pow(0.985, dt) + 0.035 * dt;
+    p.life -= 0.018 * dt;
+    p.rot += p.rotV * dt;
+    return p.life > 0;
+  });
+}
+
+function playTone(freq, dur, type = 'sine', vol = 0.14){
+  try {
+    const Audio = window.AudioContext || window.webkitAudioContext;
+    if (!Audio) return;
+    playTone.ctx = playTone.ctx || new Audio();
+    const a = playTone.ctx;
+    const o = a.createOscillator();
+    const g = a.createGain();
+    o.connect(g);
+    g.connect(a.destination);
+    o.type = type;
+    o.frequency.setValueAtTime(freq, a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(Math.max(40, freq * 0.72), a.currentTime + dur);
+    g.gain.setValueAtTime(vol, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + dur);
+    o.start();
+    o.stop(a.currentTime + dur);
+  } catch(e) {}
+}
+
+function playHit(){ playTone(560, 0.08, 'triangle', 0.13); }
+function playWall(){ playTone(260, 0.06, 'sine', 0.08); }
+function playPoint(){ [523, 659, 784].forEach((f, i) => setTimeout(() => playTone(f, 0.11, 'sine', 0.18), i * 70)); }
+function playWin(){ [659, 784, 988, 1318].forEach((f, i) => setTimeout(() => playTone(f, 0.14, 'sine', 0.2), i * 100)); }
+
+function scorePoint(side){
+  if (pointPaused) return;
+  pointPaused = true;
+
+  if (side === 'player') {
+    playerScore++;
+    arcadeEarn(1);
+    burst(W / 2, TOP_RAIL + 24, 36, '#54ECFF');
+    showMessage('+1 star!', 950);
+  } else {
+    alienScore++;
+    burst(W / 2, BOTTOM_RAIL - 24, 28, '#FF5DE1');
+    showMessage('Alien scores!', 950);
+  }
+
+  updateHud();
+  playPoint();
+
+  const winner = playerScore >= WINNING_SCORE ? 'player' : alienScore >= WINNING_SCORE ? 'alien' : null;
+  if (winner) {
+    if (winner === 'player') arcadeEarn(5);
+    setTimeout(() => {
+      playWin();
+      showMessage(winner === 'player' ? 'You win! Resetting...' : 'Alien wins! Resetting...', 2100);
+      burst(W / 2, H / 2, 70, winner === 'player' ? '#FFD700' : '#FF5DE1');
+    }, 220);
+    setTimeout(() => {
+      resetMatch(winner === 'player' ? 1 : -1);
+      pointPaused = false;
+      showMessage('New match!', 850);
+    }, 2450);
+    return;
+  }
+
+  setTimeout(() => {
+    resetPuck(side === 'player' ? 1 : -1);
+    pointPaused = false;
+  }, 850);
+}
+
+function collidePaddle(paddle, isPlayer){
+  const dx = puck.x - paddle.x;
+  const dy = puck.y - paddle.y;
+  const minDist = puck.r + paddle.r;
+  const dist = Math.max(0.001, Math.hypot(dx, dy));
+  if (dist >= minDist) return;
+
+  const nx = dx / dist;
+  const ny = dy / dist;
+  const overlap = minDist - dist;
+  puck.x += nx * (overlap + 0.8);
+  puck.y += ny * (overlap + 0.8);
+
+  const dot = puck.vx * nx + puck.vy * ny;
+  if (dot < 0 || overlap > 3) {
+    puck.vx = puck.vx - 2 * dot * nx + paddle.vx * 0.34;
+    puck.vy = puck.vy - 2 * dot * ny;
+    puck.vy += isPlayer ? -1.2 : 1.2;
+    const speed = clamp(Math.hypot(puck.vx, puck.vy) * 1.035, 4.8, 9.6);
+    const angle = Math.atan2(puck.vy, puck.vx);
+    puck.vx = Math.cos(angle) * speed;
+    puck.vy = Math.sin(angle) * speed;
+    burst(puck.x, puck.y, 10, isPlayer ? '#54ECFF' : '#FF5DE1');
+    playHit();
+  }
+}
+
+function update(dt, time){
+  updateParticles(dt);
+  if (!gameRunning || pointPaused) return;
+
+  const oldPlayerX = player.x;
+  const dir = (keys.left ? -1 : 0) + (keys.right ? 1 : 0);
+  if (dir !== 0) {
+    pointerActive = false;
+    player.x += dir * 8.4 * dt;
+    player.targetX = player.x;
+  } else {
+    const target = pointerActive ? player.targetX : pointerTargetX;
+    player.x += (target - player.x) * clamp(0.24 * dt, 0, 1);
+  }
+  player.x = clamp(player.x, SIDE_RAIL + player.r, W - SIDE_RAIL - player.r);
+  player.vx = (player.x - oldPlayerX) / Math.max(1, dt);
+
+  const oldAlienX = alien.x;
+  const home = W / 2 + Math.sin(time / 760) * 56;
+  const target = puck.y < H * 0.63 ? puck.x + Math.sin(time / 280) * 16 : home;
+  const maxStep = (4.15 + Math.min(playerScore + alienScore, 6) * 0.08) * dt;
+  alien.x += clamp(target - alien.x, -maxStep, maxStep);
+  alien.x = clamp(alien.x, SIDE_RAIL + alien.r, W - SIDE_RAIL - alien.r);
+  alien.vx = (alien.x - oldAlienX) / Math.max(1, dt);
+
+  puck.x += puck.vx * dt;
+  puck.y += puck.vy * dt;
+  puck.vx *= Math.pow(0.999, dt);
+  puck.vy *= Math.pow(0.999, dt);
+  puck.spin += puck.vx * 0.012 * dt;
+
+  if (puck.x - puck.r < SIDE_RAIL) {
+    puck.x = SIDE_RAIL + puck.r;
+    puck.vx = Math.abs(puck.vx);
+    playWall();
+  }
+  if (puck.x + puck.r > W - SIDE_RAIL) {
+    puck.x = W - SIDE_RAIL - puck.r;
+    puck.vx = -Math.abs(puck.vx);
+    playWall();
+  }
+
+  if (puck.y - puck.r < TOP_RAIL) {
+    if (inGoal(puck.x)) scorePoint('player');
+    else {
+      puck.y = TOP_RAIL + puck.r;
+      puck.vy = Math.abs(puck.vy);
+      playWall();
+    }
+  }
+  if (puck.y + puck.r > BOTTOM_RAIL) {
+    if (inGoal(puck.x)) scorePoint('alien');
+    else {
+      puck.y = BOTTOM_RAIL - puck.r;
+      puck.vy = -Math.abs(puck.vy);
+      playWall();
+    }
+  }
+
+  collidePaddle(player, true);
+  collidePaddle(alien, false);
+}
+
+function roundRect(x, y, w, h, r){
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+}
+
+function drawStar(cx, cy, inner, outer, points = 5){
+  ctx.beginPath();
+  for (let i = 0; i < points * 2; i++) {
+    const radius = i % 2 === 0 ? outer : inner;
+    const angle = i / points * Math.PI - Math.PI / 2;
+    const x = cx + Math.cos(angle) * radius;
+    const y = cy + Math.sin(angle) * radius;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawArena(time){
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#090b38');
+  bg.addColorStop(0.52, '#061642');
+  bg.addColorStop(1, '#08051e');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  stars.forEach(s => {
+    s.tw += s.speed;
+    ctx.globalAlpha = 0.32 + Math.abs(Math.sin(s.tw)) * 0.62;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = s.r > 1.2 ? '#76f1ff' : '#fff';
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  ctx.save();
+  roundRect(22, 22, W - 44, H - 44, 32);
+  ctx.clip();
+  const floor = ctx.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, 390);
+  floor.addColorStop(0, 'rgba(63, 235, 255, 0.18)');
+  floor.addColorStop(0.48, 'rgba(39, 96, 205, 0.14)');
+  floor.addColorStop(1, 'rgba(255, 72, 214, 0.12)');
+  ctx.fillStyle = floor;
+  ctx.fillRect(22, 22, W - 44, H - 44);
+
+  ctx.strokeStyle = 'rgba(77, 225, 255, 0.34)';
+  ctx.lineWidth = 3;
+  ctx.setLineDash([18, 14]);
+  ctx.beginPath();
+  ctx.moveTo(48, H / 2);
+  ctx.lineTo(W - 48, H / 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.strokeStyle = 'rgba(78, 180, 255, 0.42)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(W / 2, H / 2, 96, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(W / 2, player.y, 80, Math.PI, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(W / 2, alien.y, 80, 0, Math.PI);
+  ctx.stroke();
+
+  for (let y = 74; y < H - 60; y += 42) {
+    ctx.globalAlpha = 0.11;
+    ctx.strokeStyle = '#54ECFF';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(70, y);
+    ctx.lineTo(W - 70, y + Math.sin((time / 500) + y) * 5);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  ctx.save();
+  ctx.lineWidth = 22;
+  ctx.shadowBlur = 18;
+  ctx.shadowColor = '#54ECFF';
+  ctx.strokeStyle = '#2EEBFF';
+  roundRect(25, 25, W - 50, H - 50, 33);
+  ctx.stroke();
+  ctx.shadowColor = '#FF5DE1';
+  ctx.strokeStyle = 'rgba(255, 93, 225, 0.72)';
+  ctx.lineWidth = 9;
+  roundRect(35, 35, W - 70, H - 70, 24);
+  ctx.stroke();
+  ctx.restore();
+
+  drawGoal(TOP_RAIL - 9, '#9BFF2E', true);
+  drawGoal(BOTTOM_RAIL - 11, '#54ECFF', false);
+}
+
+function drawGoal(y, color, top){
+  ctx.save();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 18;
+  roundRect(GOAL_LEFT, y, GOAL_W, 22, 11);
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  ctx.globalAlpha = 0.24;
+  ctx.fillStyle = color;
+  const h = top ? 62 : -62;
+  ctx.fillRect(GOAL_LEFT + 16, top ? y + 18 : y - 58, GOAL_W - 32, Math.abs(h));
+  ctx.restore();
+}
+
+function drawPaddle(p, color, accent, label){
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 20;
+  ctx.beginPath();
+  ctx.ellipse(0, 15, p.r * 1.1, p.r * 0.34, 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.fill();
+
+  const base = ctx.createRadialGradient(-12, -16, 5, 0, 0, p.r);
+  base.addColorStop(0, '#ffffff');
+  base.addColorStop(0.22, accent);
+  base.addColorStop(0.72, color);
+  base.addColorStop(1, '#091433');
+  ctx.beginPath();
+  ctx.arc(0, 0, p.r, 0, Math.PI * 2);
+  ctx.fillStyle = base;
+  ctx.fill();
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = 'rgba(255,255,255,0.52)';
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.arc(0, -4, p.r * 0.48, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.24)';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(-12, -15, p.r * 0.2, p.r * 0.12, -0.35, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.72)';
+  ctx.fill();
+
+  ctx.fillStyle = '#051027';
+  ctx.font = 'bold 13px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, 0, 4);
+  ctx.restore();
+}
+
+function drawPuck(){
+  const speed = Math.hypot(puck.vx, puck.vy);
+  if (speed > 1) {
+    const angle = Math.atan2(puck.vy, puck.vx) + Math.PI;
+    const grad = ctx.createLinearGradient(
+      puck.x,
+      puck.y,
+      puck.x + Math.cos(angle) * 82,
+      puck.y + Math.sin(angle) * 82
+    );
+    grad.addColorStop(0, 'rgba(84,236,255,0.34)');
+    grad.addColorStop(1, 'rgba(84,236,255,0)');
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 18;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(puck.x, puck.y);
+    ctx.lineTo(puck.x + Math.cos(angle) * 72, puck.y + Math.sin(angle) * 72);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.translate(puck.x, puck.y);
+  ctx.rotate(puck.spin);
+  if (ufoImg.complete && ufoImg.naturalWidth > 0) {
+    const size = 92;
+    ctx.drawImage(ufoImg, -size / 2, -size / 2, size, size);
+  } else {
+    ctx.shadowColor = '#54ECFF';
+    ctx.shadowBlur = 16;
+    ctx.beginPath();
+    ctx.ellipse(0, 4, 38, 20, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#25D7E8';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, -8, 18, Math.PI, 0);
+    ctx.fillStyle = '#B8FFFF';
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawParticles(){
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = clamp(p.life, 0, 1);
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    ctx.fillStyle = p.color;
+    if (p.size > 6) drawStar(0, 0, p.size * 0.42, p.size, 5);
+    else {
+      ctx.beginPath();
+      ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  });
+}
+
+function draw(time){
+  ctx.clearRect(0, 0, W, H);
+  drawArena(time);
+  drawParticles();
+  drawPaddle(alien, '#C747FF', '#FF8BEA', 'A');
+  drawPuck();
+  drawPaddle(player, '#FFD700', '#54ECFF', 'YOU');
+}
+
+function loop(time){
+  const dt = lastTime ? Math.min(2, (time - lastTime) / 16.67) : 1;
+  lastTime = time;
+  update(dt, time);
+  draw(time);
+  requestAnimationFrame(loop);
+}
+
+area.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  startGame();
+  pointerActive = true;
+  setPointerTarget(e.clientX);
+  if (area.setPointerCapture) area.setPointerCapture(e.pointerId);
+}, { passive:false });
+
+area.addEventListener('pointermove', e => {
+  if (!pointerActive && e.pointerType !== 'touch') return;
+  e.preventDefault();
+  setPointerTarget(e.clientX);
+}, { passive:false });
+
+area.addEventListener('pointerup', e => {
+  pointerActive = false;
+  if (area.releasePointerCapture) {
+    try { area.releasePointerCapture(e.pointerId); } catch(err) {}
+  }
+});
+
+area.addEventListener('pointercancel', () => { pointerActive = false; });
+
+area.addEventListener('touchstart', e => {
+  if (e.touches[0]) {
+    e.preventDefault();
+    startGame();
+    pointerActive = true;
+    setPointerTarget(e.touches[0].clientX);
+  }
+}, { passive:false });
+
+area.addEventListener('touchmove', e => {
+  if (e.touches[0]) {
+    e.preventDefault();
+    pointerActive = true;
+    setPointerTarget(e.touches[0].clientX);
+  }
+}, { passive:false });
+
+area.addEventListener('touchend', () => { pointerActive = false; });
+
+window.addEventListener('keydown', e => {
+  if (e.code === 'ArrowLeft' || e.key === 'ArrowLeft') {
+    e.preventDefault();
+    keys.left = true;
+    startGame();
+  }
+  if (e.code === 'ArrowRight' || e.key === 'ArrowRight') {
+    e.preventDefault();
+    keys.right = true;
+    startGame();
+  }
+  if (e.code === 'Space' || e.code === 'Enter') {
+    e.preventDefault();
+    startGame();
+  }
+});
+
+window.addEventListener('keyup', e => {
+  if (e.code === 'ArrowLeft' || e.key === 'ArrowLeft') keys.left = false;
+  if (e.code === 'ArrowRight' || e.key === 'ArrowRight') keys.right = false;
+});
+
+window.addEventListener('blur', () => {
+  keys.left = false;
+  keys.right = false;
+  pointerActive = false;
+});
+
+startBtn.addEventListener('click', startGame);
+startBtn.addEventListener('touchstart', e => {
+  e.preventDefault();
+  startGame();
+}, { passive:false });
+
+updateHud();
+resetPuck(-1);
+requestAnimationFrame(loop);
+
+if (window.ArcadeAvatar) {
+  ArcadeAvatar.mountGuide({
+    rootId: 'air-hockey-avatar-guide',
+    gameId: 'intergalactic-air-hockey',
+    title: 'Air Hockey Mission',
+    primaryLabel: 'Start sliding',
+    messages: [
+      'Move your mallet left and right to knock the UFO puck into the alien goal.',
+      'Use the arrow keys, or drag with your finger on the table.',
+      'First pilot to 5 points starts a fresh match.'
+    ]
+  });
+}
+</script>
+</body>
+</html>
