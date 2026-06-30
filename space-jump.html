@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <script src="ios-app.js"></script>
+<script src="arcade-core.js"></script>
 <script src="avatar.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 <title>Space Jump!</title>
@@ -209,9 +210,10 @@
 <script>
 // ── SHARED ARCADE BANK ──
 const ARCADE_KEY = 'masonArcade';
-function arcadeLoad(){ try { return JSON.parse(localStorage.getItem(ARCADE_KEY)) || {}; } catch(e){ return {}; } }
-function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
+function arcadeLoad(){ if (window.ArcadeCore) return ArcadeCore.load(); try { return JSON.parse(localStorage.getItem(ARCADE_KEY)) || {}; } catch(e){ return {}; } }
+function arcadeSave(b){ if (window.ArcadeCore) return ArcadeCore.save(b); localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
 function arcadeEarn(n){
+  if (window.ArcadeCore) return ArcadeCore.earnStars(n);
   const amount = Math.max(0, Math.floor(n || 0));
   if (!amount) return;
   const b = arcadeLoad();
@@ -269,6 +271,7 @@ let flashTimer = 0;
 let best = getBest(activeMode);
 let lastTime = 0;
 let parallax = 0;
+let runCompleted = false;
 
 function initStars(){
   stars = Array.from({length: 115}, () => ({
@@ -315,6 +318,7 @@ function reset(){
   frame = 0;
   gateTimer = 42;
   flashTimer = 0;
+  runCompleted = false;
   best = getBest(activeMode);
   updateHUD();
   statusEl.textContent = `${cfg.label} mode ready. Tap the canvas to launch.`;
@@ -351,6 +355,7 @@ function setMode(modeKey){
 }
 
 function jump(){
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   if (state === 'over') reset();
   if (state === 'ready') {
     state = 'playing';
@@ -535,6 +540,8 @@ function endRun(reason){
   }
   const note = reason === 'star' ? 'Shooting star!' : reason === 'rock' ? 'Asteroid bump!' : 'Low orbit!';
   statusEl.textContent = `${note} Score ${scoreInt}, coins ${coinsRun}. Tap to try again.`;
+  if (!runCompleted && window.ArcadeCore) ArcadeCore.completeGame('space-jump', { mode:activeMode, score:scoreInt, coins:coinsRun, reason });
+  runCompleted = true;
   tone(190, 0.16, 'sawtooth', 0.05);
   updateHUD();
 }
@@ -759,6 +766,7 @@ function roundRect(x, y, w, h, r){
 
 let actx;
 function tone(freq, dur, type = 'sine', volume = 0.12){
+  if (window.ArcadeCore && ArcadeCore.isMuted()) return;
   try {
     actx = actx || new (window.AudioContext || window.webkitAudioContext)();
     const osc = actx.createOscillator();
@@ -778,6 +786,11 @@ function chime(){
 }
 
 function loop(now){
+  if (window.ArcadeCore && ArcadeCore.isPaused()) {
+    lastTime = now;
+    requestAnimationFrame(loop);
+    return;
+  }
   const dt = Math.min(2.2, (now - lastTime) / 16.67 || 1);
   lastTime = now;
   update(dt);

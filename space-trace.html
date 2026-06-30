@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <script src="ios-app.js"></script>
-  <script src="avatar.js"></script>
+  <script src="arcade-core.js"></script>
+<script src="avatar.js"></script>
   <title>Space Trace!</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -117,9 +118,9 @@
   <script>
     // ── SHARED ARCADE BANK ──
     const ARCADE_KEY = 'masonArcade';
-    function arcadeLoad() { try { return JSON.parse(localStorage.getItem(ARCADE_KEY)) || {}; } catch(e) { return {}; } }
-    function arcadeSave(b) { localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
-    function arcadeEarn(n) { const b = arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(b.earned||0)+n; arcadeSave(b); }
+    function arcadeLoad(){ if (window.ArcadeCore) return ArcadeCore.load(); try { return JSON.parse(localStorage.getItem(ARCADE_KEY)) || {}; } catch(e){ return {}; } }
+    function arcadeSave(b){ if (window.ArcadeCore) return ArcadeCore.save(b); localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
+    function arcadeEarn(n) { if (window.ArcadeCore) return ArcadeCore.earnStars(n); const b = arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(b.earned||0)+n; arcadeSave(b); }
 
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
@@ -150,6 +151,7 @@
     let lastY = 0;
     let outlinePixels = new Set();
     let coveredPixels = new Set();
+    let completionRecorded = false;
 
     // Create offscreen canvas for letter outline
     const letterCanvas = document.createElement('canvas');
@@ -182,6 +184,7 @@
       currentWordIndex = 0;
       currentLetterIndex = 0;
       score = 0;
+      completionRecorded = false;
       loadNewLetter();
     }
 
@@ -285,6 +288,7 @@
     }
 
     function handleDrawing(x, y) {
+      if (window.ArcadeCore && ArcadeCore.isPaused()) return;
       if (!isDrawing) return;
       x = Math.max(0, Math.min(W - 1, Math.round(x)));
       y = Math.max(0, Math.min(H - 1, Math.round(y)));
@@ -317,6 +321,10 @@
       isDrawing = false;
       score += 5;
       arcadeEarn(5);
+      if (!completionRecorded && window.ArcadeCore) {
+        completionRecorded = true;
+        ArcadeCore.completeGame('space-trace', { score });
+      }
       
       currentLetterIndex++;
       const word = getCurrentWord();
@@ -398,6 +406,10 @@
     }
 
     function animate() {
+      if (window.ArcadeCore && ArcadeCore.isPaused()) {
+        requestAnimationFrame(animate);
+        return;
+      }
       draw();
       requestAnimationFrame(animate);
     }
@@ -411,6 +423,7 @@
     }
 
     function beginDrawing(e) {
+      if (window.ArcadeCore && ArcadeCore.isPaused()) return;
       e.preventDefault();
       isDrawing = true;
       const pos = pointFromEvent(e);
@@ -423,6 +436,7 @@
     }
 
     function moveDrawing(e) {
+      if (window.ArcadeCore && ArcadeCore.isPaused()) return;
       e.preventDefault();
       if (!isDrawing) return;
       const pos = pointFromEvent(e);

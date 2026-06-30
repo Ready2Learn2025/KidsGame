@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <script src="ios-app.js"></script>
-  <script src="avatar.js"></script>
+  <script src="arcade-core.js"></script>
+<script src="avatar.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
   <title>Coller Space - Design Your Spaceship!</title>
   <style>
@@ -481,6 +482,7 @@
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d', { willReadFrequently: true });
 let isDrawing = false;
+let completionRecorded = false;
 let history = [];
 
 // Paint settings
@@ -566,12 +568,14 @@ function drawSpaceshipBase() {}
 
 function startDrawing(e) {
   e.preventDefault();
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   if (history.length === 0) saveHistory();
   isDrawing = true;
   const pos = getCanvasPos(e);
   
   if (selectedSticker) {
     placeSticker(pos.x, pos.y);
+    recordCreativeCompletion();
   } else {
     ctx.beginPath();
     ctx.moveTo(pos.x, pos.y);
@@ -580,7 +584,9 @@ function startDrawing(e) {
 
 function draw(e) {
   e.preventDefault();
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   if (!isDrawing || selectedSticker) return;
+  recordCreativeCompletion();
   
   const pos = getCanvasPos(e);
   
@@ -630,7 +636,14 @@ function draw(e) {
 function stopDrawing(e) {
   if (e) e.preventDefault();
   isDrawing = false;
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   ctx.closePath();
+}
+
+function recordCreativeCompletion() {
+  if (completionRecorded) return;
+  completionRecorded = true;
+  if (window.ArcadeCore) ArcadeCore.completeGame('coller-space', { activity:'draw' });
 }
 
 function getCanvasPos(e) {

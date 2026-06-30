@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <script src="ios-app.js"></script>
+<script src="arcade-core.js"></script>
 <script src="avatar.js"></script>
 <title>Space Pop!</title>
 <style>
@@ -89,9 +90,9 @@
 <script>
 // ── SHARED ARCADE BANK ──
 const ARCADE_KEY='masonArcade';
-function arcadeLoad(){ try{ return JSON.parse(localStorage.getItem(ARCADE_KEY))||{}; }catch(e){ return {}; } }
-function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
-function arcadeEarn(n){ const b=arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(b.earned||0)+n; arcadeSave(b); }
+function arcadeLoad(){ if (window.ArcadeCore) return ArcadeCore.load(); try{ return JSON.parse(localStorage.getItem(ARCADE_KEY))||{}; }catch(e){ return {}; } }
+function arcadeSave(b){ if (window.ArcadeCore) return ArcadeCore.save(b); localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
+function arcadeEarn(n){ if (window.ArcadeCore) return ArcadeCore.earnStars(n); const b=arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(b.earned||0)+n; arcadeSave(b); }
 
 const ALIENS = ['👾','👽','🛸','🤖'];
 const PET_EMOJIS = { dog:'🐶', cat:'🐱', donkey:'🫏', slime:'🟢', none:'🐶' };
@@ -101,7 +102,7 @@ const scoreEl = document.getElementById('score');
 const healthEl = document.getElementById('health');
 const timeEl = document.getElementById('time');
 
-let score = 0, health = 3, timeLeft = 30, running = false;
+let score = 0, health = 3, timeLeft = 30, running = false, runCompleted = false;
 let popTimer = null, clockTimer = null;
 const craters = [];
 
@@ -127,6 +128,7 @@ for (let i=0;i<9;i++){
 }
 
 function hit(c){
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   if (!running || c.dataset.active !== '1') return;
   c.dataset.active = '0';
   const a = c.querySelector('.alien');
@@ -156,6 +158,7 @@ function floatPoint(c, text, color){
 }
 
 function popRandom(){
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   const idle = craters.filter(c=>c.dataset.active==='0' && !c.querySelector('.alien').classList.contains('up'));
   if (!idle.length) return;
   const c = idle[Math.floor(Math.random()*idle.length)];
@@ -171,8 +174,9 @@ function popRandom(){
 }
 
 function start(){
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   clearInterval(popTimer); clearInterval(clockTimer);
-  score=0; health=3; timeLeft=30; running=true;
+  score=0; health=3; timeLeft=30; running=true; runCompleted=false;
   scoreEl.textContent=0; healthEl.textContent=3; timeEl.textContent=30;
   overlay.style.display='none';
   // ramp difficulty: pops get a touch faster over time
@@ -180,6 +184,7 @@ function start(){
   popTimer = setInterval(popRandom, interval);
   // periodically pop two at once later in the round
   clockTimer = setInterval(()=>{
+    if (window.ArcadeCore && ArcadeCore.isPaused()) return;
     timeLeft--; timeEl.textContent = timeLeft;
     if (timeLeft <= 12) popRandom();   // extra aliens near the end
     if (timeLeft <= 0) end('time');
@@ -187,6 +192,8 @@ function start(){
 }
 
 function end(reason){
+  if (!runCompleted && window.ArcadeCore) ArcadeCore.completeGame('space-pop', { score, reason });
+  runCompleted = true;
   running=false; clearInterval(popTimer); clearInterval(clockTimer);
   craters.forEach(c=>{ c.dataset.active='0'; c.dataset.kind='empty'; c.querySelector('.alien').classList.remove('up'); });
   const title = reason === 'pet' ? '💙 Pet rescue!' : "🎉 Time's up!";
@@ -219,6 +226,7 @@ if (window.ArcadeAvatar) {
 // tiny sound
 let actx;
 function beep(freq, dur){
+  if (window.ArcadeCore && ArcadeCore.isMuted()) return;
   try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)();
     const o=actx.createOscillator(), g=actx.createGain();
     o.connect(g); g.connect(actx.destination); o.type='sine'; o.frequency.value=freq;

@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <script src="ios-app.js"></script>
-  <script src="avatar.js"></script>
+  <script src="arcade-core.js"></script>
+<script src="avatar.js"></script>
   <title>Space Dash!</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -51,9 +52,9 @@
   <script>
     // ── SHARED ARCADE BANK ──
     const ARCADE_KEY = 'masonArcade';
-    function arcadeLoad(){ try { return JSON.parse(localStorage.getItem(ARCADE_KEY)) || {}; } catch(e){ return {}; } }
-    function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
-    function arcadeEarn(n){ const b = arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(b.earned||0)+n; arcadeSave(b); }
+    function arcadeLoad(){ if (window.ArcadeCore) return ArcadeCore.load(); try { return JSON.parse(localStorage.getItem(ARCADE_KEY)) || {}; } catch(e){ return {}; } }
+    function arcadeSave(b){ if (window.ArcadeCore) return ArcadeCore.save(b); localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
+    function arcadeEarn(n){ if (window.ArcadeCore) return ArcadeCore.earnStars(n); const b = arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(b.earned||0)+n; arcadeSave(b); }
 
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
@@ -79,7 +80,7 @@
     ];
 
     let ship, planets, coins, fuels, stars, score, totalCoins, totalFuel, lives, best, bestCoins;
-    let speed, planetTimer, coinTimer, fuelTimer, fuelBoostTimer, gameOver, started, flashTimer, shieldTimer;
+    let speed, planetTimer, coinTimer, fuelTimer, fuelBoostTimer, gameOver, started, flashTimer, shieldTimer, runCompleted;
     let mouseX = null;
     best = 0; bestCoins = 0;
 
@@ -110,6 +111,7 @@
       fuelTimer = 220;
       fuelBoostTimer = 0;
       gameOver = false;
+      runCompleted = false;
       flashTimer = 0;
       shieldTimer = 0;
       initStars();
@@ -376,6 +378,11 @@
 
     let last = 0;
     function loop(ts) {
+      if (window.ArcadeCore && ArcadeCore.isPaused()) {
+        last = ts;
+        requestAnimationFrame(loop);
+        return;
+      }
       const dt = Math.min((ts - last) / 16.67, 3);
       last = ts;
 
@@ -456,6 +463,8 @@
           gameOver = true;
           if (Math.floor(score) > best) best = Math.floor(score);
           if (totalCoins > bestCoins) bestCoins = totalCoins;
+          if (!runCompleted && window.ArcadeCore) ArcadeCore.completeGame('space-dash', { score:Math.floor(score), coins:totalCoins, fuel:totalFuel });
+          runCompleted = true;
         }
         updateHUD();
       }
@@ -508,6 +517,7 @@
     }
 
     function moveLane(dir) {
+      if (window.ArcadeCore && ArcadeCore.isPaused()) return;
       mouseX = null;   // release mouse control when using keys
       ship.lane = Math.max(0, Math.min(LANE_COUNT - 1, ship.lane + dir));
       ship.targetX = ship.lane * LANE_W + LANE_W / 2;
@@ -519,6 +529,7 @@
       if (e.key === 'ArrowRight') { e.preventDefault(); if (started && !gameOver) moveLane(1); }
       if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
+        if (window.ArcadeCore && ArcadeCore.isPaused()) return;
         if (!started)      started = true;
         else if (gameOver) { reset(); started = true; }
       }
@@ -526,6 +537,7 @@
 
     // Mouse steer
     canvas.addEventListener('mousemove', e => {
+      if (window.ArcadeCore && ArcadeCore.isPaused()) return;
       if (!started || gameOver) return;
       const rect = canvas.getBoundingClientRect();
       const scaleX = W / rect.width;
@@ -535,6 +547,7 @@
 
     // Click to start / restart
     canvas.addEventListener('click', e => {
+      if (window.ArcadeCore && ArcadeCore.isPaused()) return;
       if (!started)      { started = true; return; }
       if (gameOver)      { reset(); started = true; }
     });
@@ -543,10 +556,12 @@
     let touchStartX = null;
     canvas.addEventListener('touchstart', e => {
       e.preventDefault();
+      if (window.ArcadeCore && ArcadeCore.isPaused()) return;
       touchStartX = e.touches[0].clientX;
     }, { passive: false });
     canvas.addEventListener('touchmove', e => {
       e.preventDefault();
+      if (window.ArcadeCore && ArcadeCore.isPaused()) return;
       if (!started || gameOver) return;
       const rect = canvas.getBoundingClientRect();
       const scaleX = W / rect.width;
@@ -554,6 +569,7 @@
     }, { passive: false });
     canvas.addEventListener('touchend', e => {
       e.preventDefault();
+      if (window.ArcadeCore && ArcadeCore.isPaused()) return;
       mouseX = null;
       if (!started)      { started = true; return; }
       if (gameOver)      { reset(); started = true; return; }

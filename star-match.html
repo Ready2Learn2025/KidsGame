@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <script src="ios-app.js"></script>
+<script src="arcade-core.js"></script>
 <script src="avatar.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 <title>Star Match!</title>
@@ -142,9 +143,9 @@
 <script>
 // ── SHARED ARCADE BANK ──
 const ARCADE_KEY='masonArcade';
-function arcadeLoad(){ try{ return JSON.parse(localStorage.getItem(ARCADE_KEY))||{}; }catch(e){ return {}; } }
-function arcadeSave(b){ localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
-function arcadeEarn(n){ const b=arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(b.earned||0)+n; arcadeSave(b); }
+function arcadeLoad(){ if (window.ArcadeCore) return ArcadeCore.load(); try{ return JSON.parse(localStorage.getItem(ARCADE_KEY))||{}; }catch(e){ return {}; } }
+function arcadeSave(b){ if (window.ArcadeCore) return ArcadeCore.save(b); localStorage.setItem(ARCADE_KEY, JSON.stringify(b)); }
+function arcadeEarn(n){ if (window.ArcadeCore) return ArcadeCore.earnStars(n); const b=arcadeLoad(); b.coins=(b.coins||0)+n; b.earned=(b.earned||0)+n; arcadeSave(b); }
 
 const SYMBOLS = ['🚀','🪐','🌟','👽','🛸','🌙','☄️','🌍','⭐','🌈'];
 const LEVELS = { easy:3, med:6, hard:8 };
@@ -160,7 +161,7 @@ const bestTimeEl = document.getElementById('best-time');
 
 let currentLevel='easy', totalPairs=0, matched=0, sessionStars=0, timeLeft=MATCH_LIMIT_SECONDS, elapsed=0;
 let first=null, busy=false;
-let timerId = null, gameActive = false;
+let timerId = null, gameActive = false, runCompleted = false;
 
 function syncStars(){ caughtEl.textContent = sessionStars; }
 function formatTime(seconds){
@@ -201,6 +202,7 @@ function startMatchTimer(){
   clearMatchTimer();
   timerId = setInterval(()=>{
     if (!gameActive) return;
+    if (window.ArcadeCore && ArcadeCore.isPaused()) return;
     timeLeft--;
     elapsed++;
     updateTimer();
@@ -211,7 +213,7 @@ function startMatchTimer(){
 function startGame(level){
   clearMatchTimer();
   currentLevel=level; matched=0; first=null; busy=false; sessionStars=0; syncStars();
-  timeLeft=MATCH_LIMIT_SECONDS; elapsed=0; gameActive=true;
+  timeLeft=MATCH_LIMIT_SECONDS; elapsed=0; gameActive=true; runCompleted=false;
   document.getElementById('win').classList.remove('show');
   pickEl.style.display='none'; boardEl.style.display='grid';
   totalPairs = LEVELS[level];
@@ -237,6 +239,7 @@ function startGame(level){
 }
 
 function flip(card){
+  if (window.ArcadeCore && ArcadeCore.isPaused()) return;
   if (!gameActive || busy || card.classList.contains('flipped') || card.classList.contains('matched')) return;
   card.classList.add('flipped'); beep(560,0.07);
   if (!first){ first = card; return; }
@@ -264,6 +267,8 @@ function winRound(){
   const isNewBest = saveBestTime(currentLevel, elapsed);
   updateBestTimeDisplay();
   arcadeEarn(5); sessionStars += 5; syncStars();   // board-complete bonus
+  if (!runCompleted && window.ArcadeCore) ArcadeCore.completeGame('star-match', { level:currentLevel, result:'win', stars:sessionStars, elapsed });
+  runCompleted = true;
   document.getElementById('win-emoji').textContent = ['🎉','🏆','🌟','🚀'][Math.floor(Math.random()*4)];
   document.getElementById('win-title').textContent = 'You did it!';
   document.getElementById('win-sub').textContent = `You matched all ${totalPairs} pairs in ${formatTime(elapsed)}! ${isNewBest ? 'New best time! ' : ''}+5 ⭐ bonus`;
@@ -271,6 +276,8 @@ function winRound(){
 }
 
 function timeUp(){
+  if (!runCompleted && window.ArcadeCore) ArcadeCore.completeGame('star-match', { level:currentLevel, result:'time-up', stars:sessionStars, elapsed });
+  runCompleted = true;
   gameActive = false;
   clearMatchTimer();
   busy = true;
@@ -305,6 +312,7 @@ function burst(near){
 // sound
 let actx;
 function tone(f,d,type='sine',v=0.15){
+  if (window.ArcadeCore && ArcadeCore.isMuted()) return;
   try{ actx=actx||new (window.AudioContext||window.webkitAudioContext)();
     const o=actx.createOscillator(), g=actx.createGain();
     o.connect(g); g.connect(actx.destination); o.type=type; o.frequency.value=f;
